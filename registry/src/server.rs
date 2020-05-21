@@ -9,25 +9,23 @@ use tokio_util::codec::FramedRead;
 
 use failure::Error;
 
-use super::codec::Codec;
+use super::codec::{Decoder, Encoder};
 // TODO: Abstract Registry Away To create a generic IPC Server actor
 use super::registry::{ListCapabilities, Register, Registry, RegistryRequest, RegistryResponse};
 
-type ServiceCodec = Codec<RegistryRequest, RegistryResponse>;
-type RegistryCodec = Codec<RegistryResponse, RegistryRequest>;
-
-struct RegistrationSession {
+struct Session {
     registry: Addr<Registry>,
-    service: actix::io::FramedWrite<RegistryResponse, WriteHalf<UnixStream>, ServiceCodec>,
+    service:
+        actix::io::FramedWrite<RegistryResponse, WriteHalf<UnixStream>, Encoder<RegistryResponse>>,
 }
 
-impl Actor for RegistrationSession {
+impl Actor for Session {
     type Context = Context<Self>;
 }
 
-impl actix::io::WriteHandler<Error> for RegistrationSession {}
+impl actix::io::WriteHandler<Error> for Session {}
 
-impl StreamHandler<Result<RegistryRequest, Error>> for RegistrationSession {
+impl StreamHandler<Result<RegistryRequest, Error>> for Session {
     fn handle(&mut self, msg: Result<RegistryRequest, Error>, ctx: &mut Self::Context) {
         match msg {
             Ok(RegistryRequest::List) => {
@@ -80,13 +78,13 @@ impl Handler<IpcConnect> for IpcServer {
 
     fn handle(&mut self, msg: IpcConnect, _ctx: &mut Self::Context) -> Self::Result {
         let registry = self.registry.clone();
-        RegistrationSession::create(move |ctx| {
+        Session::create(move |ctx| {
             let (r, w) = tokio::io::split(msg.0);
 
-            RegistrationSession::add_stream(FramedRead::new(r, ServiceCodec::new()), ctx);
-            RegistrationSession {
+            Session::add_stream(FramedRead::new(r, Decoder::<RegistryRequest>::new()), ctx);
+            Session {
                 registry,
-                service: actix::io::FramedWrite::new(w, ServiceCodec::new(), ctx),
+                service: actix::io::FramedWrite::new(w, Encoder::<RegistryResponse>::new(), ctx),
             }
         });
     }
@@ -106,7 +104,8 @@ pub enum ClientRequest {
 }
 
 pub struct IpcClient {
-    framed: actix::io::FramedWrite<RegistryRequest, WriteHalf<UnixStream>, RegistryCodec>,
+    framed:
+        actix::io::FramedWrite<RegistryRequest, WriteHalf<UnixStream>, Encoder<RegistryRequest>>,
 }
 
 impl actix::io::WriteHandler<Error> for IpcClient {}
@@ -131,9 +130,9 @@ impl Handler<ClientRequest> for IpcClient {
 impl IpcClient {
     pub fn new(stream: UnixStream, ctx: &mut Context<Self>) -> Self {
         let (r, w) = tokio::io::split(stream);
-        ctx.add_stream(FramedRead::new(r, RegistryCodec::new()));
+        ctx.add_stream(FramedRead::new(r, Decoder::<RegistryResponse>::new()));
         Self {
-            framed: actix::io::FramedWrite::new(w, RegistryCodec::new(), ctx),
+            framed: actix::io::FramedWrite::new(w, Encoder::<RegistryRequest>::new(), ctx),
         }
     }
 }

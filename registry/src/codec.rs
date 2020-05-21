@@ -4,8 +4,6 @@ use std::marker::PhantomData;
 use byteorder::{BigEndian, ByteOrder};
 use bytes::{Buf, BufMut, BytesMut};
 
-use tokio_util::codec::{Decoder, Encoder};
-
 use failure::{Error, ResultExt};
 
 use serde::de::DeserializeOwned;
@@ -39,34 +37,44 @@ fn json_decode<T: DeserializeOwned>(src: &mut BytesMut) -> Result<Option<T>, Err
     }
 }
 
-pub struct Codec<In, Out> {
+pub struct Encoder<Out> {
     outbound_message: PhantomData<Out>,
-    inbound_message: PhantomData<In>,
 }
 
-impl<In, Out> Codec<In, Out> {
+impl<Out> Encoder<Out> {
     pub fn new() -> Self {
         Self {
             outbound_message: PhantomData,
-            inbound_message: PhantomData,
         }
     }
 }
 
-impl<In: DeserializeOwned, Out> Decoder for Codec<In, Out> {
-    type Item = In;
-    type Error = Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        json_decode(src)
-    }
-}
-
-impl<In, Out: Serialize + fmt::Debug> Encoder<Out> for Codec<In, Out> {
+impl<Out: Serialize + fmt::Debug> tokio_util::codec::Encoder<Out> for Encoder<Out> {
     type Error = Error;
 
     fn encode(&mut self, msg: Out, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let msg = json::to_string(&msg).context(format!("Couldn't Encode Message: {:?}", msg))?;
         json_string_encode(msg, dst)
+    }
+}
+
+pub struct Decoder<In> {
+    inbound_message: PhantomData<In>,
+}
+
+impl<In> Decoder<In> {
+    pub fn new() -> Self {
+        Self {
+            inbound_message: PhantomData,
+        }
+    }
+}
+
+impl<In: DeserializeOwned> tokio_util::codec::Decoder for Decoder<In> {
+    type Item = In;
+    type Error = Error;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        json_decode(src)
     }
 }
