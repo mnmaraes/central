@@ -20,8 +20,8 @@ use server::{ClientRequest, IpcClient, IpcConnect, IpcServer};
 async fn main() -> Result<(), Error> {
     let path = "/tmp/central.registry";
 
-    //run_as_server(path).await?;
-    run_as_client(path.to_string()).await?;
+    run_as_server(path).await?;
+    //run_as_client(path.to_string()).await?;
 
     tokio::signal::ctrl_c().await?;
     println!("Ctrl-C received, shutting down");

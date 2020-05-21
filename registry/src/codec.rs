@@ -1,3 +1,6 @@
+use std::fmt;
+use std::marker::PhantomData;
+
 use byteorder::{BigEndian, ByteOrder};
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -6,10 +9,8 @@ use tokio_util::codec::{Decoder, Encoder};
 use failure::{Error, ResultExt};
 
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json as json;
-
-use super::registry::{RegistryRequest, RegistryResponse};
 
 fn json_string_encode(msg: String, dst: &mut BytesMut) -> Result<(), Error> {
     let msg_ref: &[u8] = msg.as_ref();
@@ -38,11 +39,22 @@ fn json_decode<T: DeserializeOwned>(src: &mut BytesMut) -> Result<Option<T>, Err
     }
 }
 
-// Service => Registry
-pub struct ServiceCodec;
+pub struct Codec<In, Out> {
+    outbound_message: PhantomData<Out>,
+    inbound_message: PhantomData<In>,
+}
 
-impl Decoder for ServiceCodec {
-    type Item = RegistryRequest;
+impl<In, Out> Codec<In, Out> {
+    pub fn new() -> Self {
+        Self {
+            outbound_message: PhantomData,
+            inbound_message: PhantomData,
+        }
+    }
+}
+
+impl<In: DeserializeOwned, Out> Decoder for Codec<In, Out> {
+    type Item = In;
     type Error = Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -50,31 +62,10 @@ impl Decoder for ServiceCodec {
     }
 }
 
-impl Encoder<RegistryResponse> for ServiceCodec {
+impl<In, Out: Serialize + fmt::Debug> Encoder<Out> for Codec<In, Out> {
     type Error = Error;
 
-    fn encode(&mut self, msg: RegistryResponse, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let msg = json::to_string(&msg).context(format!("Couldn't Encode Message: {:?}", msg))?;
-        json_string_encode(msg, dst)
-    }
-}
-
-// Registry => Service
-pub struct RegistryCodec;
-
-impl Decoder for RegistryCodec {
-    type Item = RegistryResponse;
-    type Error = Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        json_decode(src)
-    }
-}
-
-impl Encoder<RegistryRequest> for RegistryCodec {
-    type Error = Error;
-
-    fn encode(&mut self, msg: RegistryRequest, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, msg: Out, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let msg = json::to_string(&msg).context(format!("Couldn't Encode Message: {:?}", msg))?;
         json_string_encode(msg, dst)
     }
