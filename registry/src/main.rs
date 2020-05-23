@@ -13,8 +13,8 @@ use tokio::stream::StreamExt;
 
 use failure::{Error, ResultExt};
 
-use registry::Registry;
-use server::{ClientRequest, IpcClient, IpcConnect, IpcServer};
+use registry::{ListCapabilities, Register, Registry, RegistryRequest, RegistryResponse};
+use server::{IpcServer, Router};
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
@@ -31,47 +31,69 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn run_as_client(path: String) -> Result<(), Error> {
-    Arbiter::spawn(UnixStream::connect(path).then(|stream| {
-        let stream = stream.unwrap();
-        let addr = IpcClient::create(|ctx| IpcClient::new(stream, ctx));
+//async fn run_as_client(path: String) -> Result<(), Error> {
+//Arbiter::spawn(UnixStream::connect(path).then(|stream| {
+//let stream = stream.unwrap();
+//let addr = IpcClient::create(|ctx| IpcClient::new(stream, ctx));
 
-        addr.do_send(ClientRequest::Register("Linker".to_string()));
+//addr.do_send(ClientRequest::Register("Linker".to_string()));
 
-        async {}
-    }));
+//async {}
+//}));
 
-    Ok(())
+//Ok(())
+//}
+
+struct ServerRouter {
+    registry: Addr<Registry>,
+}
+
+impl Actor for ServerRouter {
+    type Context = Context<Self>;
+}
+
+impl Handler<RegistryRequest> for ServerRouter {
+    type Result = ResponseActFuture<Self, RegistryResponse>;
+
+    fn handle(&mut self, msg: RegistryRequest, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            RegistryRequest::List => {
+                Box::pin(self.registry.send(ListCapabilities).into_actor(self).map(
+                    |res, _act, _ctx| match res {
+                        Ok(capabilities) => RegistryResponse::Capabilities(capabilities),
+                        Err(e) => {
+                            RegistryResponse::Error(format!("Error Listing Capabilities: {:?}", e))
+                        }
+                    },
+                ))
+            }
+            RegistryRequest::Register(capability) => Box::pin(
+                self.registry
+                    .send(Register::new(capability))
+                    .into_actor(self)
+                    .map(|res, _act, _ctx| match res {
+                        Ok(_) => RegistryResponse::Registered,
+                        Err(e) => {
+                            RegistryResponse::Error(format!("Error Listing Capabilities: {:?}", e))
+                        }
+                    }),
+            ),
+        }
+    }
+}
+
+impl Router<RegistryRequest> for ServerRouter {}
+
+impl ServerRouter {
+    fn route() -> Addr<Self> {
+        let registry = Registry::start_default();
+
+        Self { registry }.start()
+    }
 }
 
 async fn run_as_server(path: &str) -> Result<(), Error> {
-    let registry = Registry::start_default();
-
-    let listener = Box::new(open_uds_listener(path).context("Couldn't open socket")?);
-
-    IpcServer::create(move |ctx| {
-        ctx.add_message_stream(Box::leak(listener).incoming().map(|stream| {
-            let stream = stream.unwrap();
-            let addr = stream.peer_addr().unwrap();
-            IpcConnect(stream, addr)
-        }));
-        IpcServer::new(registry)
-    });
+    IpcServer::serve(path, ServerRouter::route())?;
 
     Ok(())
-}
-
-fn open_uds_listener(path: &str) -> Result<UnixListener, Error> {
-    match UnixListener::bind(&path) {
-        Ok(l) => Ok(l),
-        Err(e) if e.kind() == ErrorKind::AddrInUse => {
-            // 1. Handle cases where file exists
-            // TODO: Handle it more gracefully (Ask user whether to force or abort)
-            println!("A connection file already exists. Removing it.");
-            fs::remove_file(&path)?;
-
-            UnixListener::bind(&path).map_err(Error::from)
-        }
-        Err(e) => Err(Error::from(e)),
-    }
 }

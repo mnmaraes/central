@@ -2,43 +2,7 @@ use actix::prelude::*;
 
 use im::HashMap;
 
-use serde::{Deserialize, Serialize};
-
-// Service Request
-#[derive(Serialize, Deserialize, Message, Debug)]
-#[rtype(result = "()")]
-#[serde(tag = "message", content = "data")]
-pub enum RegistryRequest {
-    List,
-    Register(String),
-}
-
-// Registry Response
-#[derive(Serialize, Deserialize, Message, Debug)]
-#[rtype(result = "()")]
-#[serde(tag = "message", content = "data")]
-pub enum RegistryResponse {
-    Capabilities(Vec<String>),
-    Registered,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct Register {
-    capability: String,
-}
-
-impl Register {
-    pub fn new(capability: String) -> Self {
-        Self { capability }
-    }
-}
-
-pub struct ListCapabilities;
-
-impl actix::Message for ListCapabilities {
-    type Result = Vec<String>;
-}
+use super::messages::{ListCapabilities, Register};
 
 pub struct Registry {
     providers: HashMap<String, Addr<Provider>>,
