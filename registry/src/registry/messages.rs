@@ -27,7 +27,7 @@ pub enum RegistryResponse {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Register {
-    capability: String,
+    pub(super) capability: String,
 }
 
 impl Register {
