@@ -6,11 +6,11 @@ mod server;
 
 use actix::prelude::*;
 
-use failure::Error;
+use failure::{Error, ResultExt};
 
-use ipc::{Printer, ServerRouter};
+use ipc::Printer;
 
-use registry::RegistryRequest;
+use registry::{Registry, RegistryRequest};
 
 use tokio::net::UnixStream;
 
@@ -20,8 +20,8 @@ use client::{InterfaceRequest, SystemResponder, WriteInterface};
 async fn main() -> Result<(), Error> {
     let path = "/tmp/central.registry";
 
-    //ServerRouter::serve(path).context(format!("Error serving on ipc path: {}", path))?;
-    run_as_client(path).await?;
+    Registry::serve(path).context(format!("Error serving on ipc path: {}", path))?;
+    //run_as_client(path).await?;
 
     tokio::signal::ctrl_c().await?;
     println!("Ctrl-C received, shutting down");

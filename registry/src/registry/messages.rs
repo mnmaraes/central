@@ -1,3 +1,4 @@
+use actix::dev::{MessageResponse, ResponseChannel};
 use actix::prelude::*;
 
 use serde::{Deserialize, Serialize};
@@ -24,20 +25,14 @@ pub enum RegistryResponse {
     Error(String),
 }
 
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct Register {
-    pub(super) capability: String,
-}
-
-impl Register {
-    pub fn new(capability: String) -> Self {
-        Self { capability }
+impl<A, M> MessageResponse<A, M> for RegistryResponse
+where
+    A: Actor,
+    M: Message<Result = RegistryResponse>,
+{
+    fn handle<R: ResponseChannel<M>>(self, _: &mut A::Context, tx: Option<R>) {
+        if let Some(tx) = tx {
+            tx.send(self);
+        }
     }
-}
-
-pub struct ListCapabilities;
-
-impl actix::Message for ListCapabilities {
-    type Result = Vec<String>;
 }

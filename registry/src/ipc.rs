@@ -2,60 +2,16 @@ use actix::prelude::*;
 
 use failure::Error;
 
-use super::registry::{ListCapabilities, Register, Registry, RegistryRequest, RegistryResponse};
+use super::registry::{Registry, RegistryRequest, RegistryResponse};
 use super::server::{IpcServer, Router};
 
-pub struct ServerRouter {
-    registry: Addr<Registry>,
-}
+impl Router<RegistryRequest> for Registry {}
 
-impl Actor for ServerRouter {
-    type Context = Context<Self>;
-}
-
-impl Handler<RegistryRequest> for ServerRouter {
-    type Result = ResponseActFuture<Self, RegistryResponse>;
-
-    fn handle(&mut self, msg: RegistryRequest, _ctx: &mut Self::Context) -> Self::Result {
-        match msg {
-            RegistryRequest::List => {
-                Box::pin(self.registry.send(ListCapabilities).into_actor(self).map(
-                    |res, _act, _ctx| match res {
-                        Ok(capabilities) => RegistryResponse::Capabilities(capabilities),
-                        Err(e) => {
-                            RegistryResponse::Error(format!("Error Listing Capabilities: {:?}", e))
-                        }
-                    },
-                ))
-            }
-            RegistryRequest::Register(capability) => Box::pin(
-                self.registry
-                    .send(Register::new(capability))
-                    .into_actor(self)
-                    .map(|res, _act, _ctx| match res {
-                        Ok(_) => RegistryResponse::Registered,
-                        Err(e) => {
-                            RegistryResponse::Error(format!("Error Listing Capabilities: {:?}", e))
-                        }
-                    }),
-            ),
-        }
-    }
-}
-
-impl Router<RegistryRequest> for ServerRouter {}
-
-impl ServerRouter {
+impl Registry {
     pub fn serve(path: &str) -> Result<(), Error> {
-        IpcServer::serve(path, Self::route())?;
+        IpcServer::serve(path, Self::start_default())?;
 
         Ok(())
-    }
-
-    fn route() -> Addr<Self> {
-        let registry = Registry::start_default();
-
-        Self { registry }.start()
     }
 }
 

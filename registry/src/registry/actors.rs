@@ -2,7 +2,7 @@ use actix::prelude::*;
 
 use im::HashMap;
 
-use super::messages::{ListCapabilities, Register};
+use super::messages::{RegistryRequest, RegistryResponse};
 
 pub struct Registry {
     providers: HashMap<String, Addr<Provider>>,
@@ -20,19 +20,25 @@ impl Default for Registry {
     }
 }
 
-impl Handler<Register> for Registry {
-    type Result = ();
+impl Handler<RegistryRequest> for Registry {
+    type Result = RegistryResponse;
 
-    fn handle(&mut self, msg: Register, _: &mut Self::Context) -> Self::Result {
-        self.providers.insert(msg.capability, Provider.start());
-    }
-}
+    fn handle(&mut self, msg: RegistryRequest, ctx: &mut Self::Context) -> Self::Result {
+        use RegistryRequest::*;
 
-impl Handler<ListCapabilities> for Registry {
-    type Result = MessageResult<ListCapabilities>;
+        let res = match msg {
+            List => RegistryResponse::Capabilities(
+                self.providers.keys().map(|s| s.to_string()).collect(),
+            ),
+            Register(capability) => match self.providers.insert(capability, Provider.start()) {
+                Some(_) => RegistryResponse::Registered,
+                None => {
+                    RegistryResponse::Error(format!("Error registering capability: {}", capability))
+                }
+            },
+        };
 
-    fn handle(&mut self, _: ListCapabilities, _: &mut Self::Context) -> Self::Result {
-        MessageResult(self.providers.keys().map(|s| s.to_string()).collect())
+        res
     }
 }
 
