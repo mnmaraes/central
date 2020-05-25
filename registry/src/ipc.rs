@@ -3,7 +3,7 @@ use actix::prelude::*;
 use failure::Error;
 
 use super::registry::{Registry, RegistryRequest, RegistryResponse};
-use super::server::{IpcServer, Router};
+use cliff::server::{IpcServer, Router};
 
 impl Router<RegistryRequest> for Registry {}
 

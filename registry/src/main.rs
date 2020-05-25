@@ -1,8 +1,5 @@
-mod client;
-mod codec;
 mod ipc;
 mod registry;
-mod server;
 
 use actix::prelude::*;
 
@@ -14,7 +11,7 @@ use registry::{Registry, RegistryRequest};
 
 use tokio::net::UnixStream;
 
-use client::{InterfaceRequest, SystemResponder, WriteInterface};
+use cliff::client::{InterfaceRequest, SystemResponder, WriteInterface};
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
