@@ -5,7 +5,7 @@ use im::HashMap;
 use super::messages::{RegistryRequest, RegistryResponse};
 
 pub struct Registry {
-    providers: HashMap<String, Addr<Provider>>,
+    providers: HashMap<String, String>,
 }
 
 impl Actor for Registry {
@@ -27,26 +27,23 @@ impl Handler<RegistryRequest> for Registry {
         use RegistryRequest::*;
 
         let res = match msg {
-            List => RegistryResponse::Capabilities(
-                self.providers.keys().map(|s| s.to_string()).collect(),
-            ),
-            Register(capability) => {
-                match self.providers.insert(capability.clone(), Provider.start()) {
-                    Some(_) => RegistryResponse::Registered,
-                    None => RegistryResponse::Error(format!(
-                        "Error registering capability: {}",
-                        capability
-                    )),
-                }
+            Require { id, capability } => match self.providers.get(&capability) {
+                Some(addr) => RegistryResponse::Capability {
+                    id,
+                    address: addr.clone(),
+                },
+                None => RegistryResponse::Error("Capability Not Found".to_string()),
+            },
+            Register {
+                id,
+                capability,
+                address,
+            } => {
+                self.providers.insert(capability.clone(), address.clone());
+                RegistryResponse::Registered { id }
             }
         };
 
         res
     }
-}
-
-struct Provider;
-
-impl Actor for Provider {
-    type Context = Context<Self>;
 }

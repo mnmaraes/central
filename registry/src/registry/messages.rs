@@ -7,8 +7,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "message", content = "data")]
 pub enum RegistryRequest {
-    List,
-    Register(String),
+    Require {
+        id: String,
+        capability: String,
+    },
+    Register {
+        id: String,
+        capability: String,
+        address: String,
+    },
 }
 
 impl actix::Message for RegistryRequest {
@@ -20,8 +27,8 @@ impl actix::Message for RegistryRequest {
 #[rtype(result = "()")]
 #[serde(tag = "message", content = "data")]
 pub enum RegistryResponse {
-    Capabilities(Vec<String>),
-    Registered,
+    Capability { id: String, address: String },
+    Registered { id: String },
     Error(String),
 }
 

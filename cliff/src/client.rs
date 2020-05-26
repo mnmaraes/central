@@ -51,26 +51,25 @@ impl<I: InterfaceMessage + 'static> WriteInterface<I> {
     }
 }
 
-impl<I: InterfaceMessage + 'static> WriteInterface<I> {
-    pub async fn connect(path: &str) -> Result<Addr<Self>, Error> {
-        let path = path.to_string();
-        let stream = UnixStream::connect(path).await?;
-        let addr = WriteInterface::create(|ctx| {
-            let (r, w) = tokio::io::split(stream);
-            //ctx.add_stream(FramedRead::new(r, Decoder::<RegistryResponse>::new()));
-            Self {
-                framed: actix::io::FramedWrite::new(w, Encoder::<I>::new(), ctx),
-            }
-        });
-
-        Ok(addr)
-    }
-}
-
 pub trait InterfaceResponse: Message + DeserializeOwned + Unpin + Send {}
 
 impl<M: Message + DeserializeOwned + Unpin + Send> InterfaceResponse for M {}
 
+// Basic Routing
+pub trait Delegate<I: InterfaceResponse>: Actor {
+    fn listen(r: ReadHalf<UnixStream>, ctx: &mut Self::Context);
+}
+
+impl<I: InterfaceResponse + 'static, D: Actor + StreamHandler<Result<I, Error>>> Delegate<I> for D
+where
+    D: Actor<Context = Context<D>>,
+{
+    fn listen(r: ReadHalf<UnixStream>, ctx: &mut Self::Context) {
+        ctx.add_stream(FramedRead::new(r, Decoder::<I>::new()));
+    }
+}
+
+// System Responder
 pub trait SystemResponder<I: InterfaceResponse>:
     Actor + actix::Supervised + SystemService + Handler<I>
 {
@@ -94,6 +93,7 @@ where
     }
 }
 
+// Forwarding Client
 struct SystemForwardClient<I: InterfaceResponse, R: SystemResponder<I>> {
     i: PhantomData<I>,
     r: PhantomData<R>,
