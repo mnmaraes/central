@@ -1,4 +1,4 @@
 mod ipc;
 mod registry;
 
-pub use ipc::{InterfaceClient, ProviderClient};
+pub use ipc::{InterfaceClient, ProviderClient, Register, Require};

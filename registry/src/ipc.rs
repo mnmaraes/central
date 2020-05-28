@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix::prelude::*;
 
-use failure::Error;
+use failure::{Error, ResultExt};
 
 use futures::FutureExt;
 
@@ -26,14 +26,24 @@ impl Registry {
 
         Ok(())
     }
+
+    #[allow(dead_code)]
+    pub fn serve_default() -> Result<(), Error> {
+        let path = "/tmp/central.registry";
+
+        IpcServer::serve(path, Self::start_default())
+            .context(format!("Error serving on ipc path: {}", path))?;
+
+        Ok(())
+    }
 }
 
 // Provider Client
 #[derive(Debug, Message)]
 #[rtype(result = "()")]
 pub struct Register {
-    capability: String,
-    address: String,
+    pub capability: String,
+    pub address: String,
 }
 
 pub struct ProviderClient {
@@ -58,7 +68,7 @@ impl Handler<Register> for ProviderClient {
         Box::pin(
             self.writer
                 .send(InterfaceRequest(RegistryRequest::Register {
-                    id: id.clone(),
+                    id,
                     capability: msg.capability,
                     address: msg.address,
                 }))
@@ -113,6 +123,33 @@ impl ProviderClient {
 
         Ok(addr)
     }
+
+    #[allow(dead_code)]
+    pub async fn register_default(capability: &str, address: &str) -> Result<Addr<Self>, Error> {
+        let path = "/tmp/central.registry";
+
+        let stream = UnixStream::connect(path).await?;
+        let (r, w) = tokio::io::split(stream);
+
+        let writer = WriteInterface::attach(w).await?;
+
+        let addr = ProviderClient::create(|ctx| {
+            ProviderClient::listen(r, ctx);
+
+            ProviderClient {
+                writer,
+                futures: HashMap::new(),
+            }
+        });
+
+        addr.send(Register {
+            capability: capability.to_string(),
+            address: address.to_string(),
+        })
+        .await?;
+
+        Ok(addr)
+    }
 }
 
 // Interface Client
@@ -141,7 +178,7 @@ impl Handler<Require> for InterfaceClient {
         Box::pin(
             self.writer
                 .send(InterfaceRequest(RegistryRequest::Require {
-                    id: id.clone(),
+                    id,
                     capability: msg.0,
                 }))
                 .then(|_res| async move { rx.await.unwrap() }),
@@ -190,5 +227,10 @@ impl InterfaceClient {
         });
 
         Ok(addr)
+    }
+
+    #[allow(dead_code)]
+    pub async fn connect_default() -> Result<Addr<Self>, Error> {
+        InterfaceClient::connect("/tmp/central.registry").await
     }
 }
