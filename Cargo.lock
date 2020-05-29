@@ -167,12 +167,22 @@ dependencies = [
  "actix",
  "byteorder",
  "bytes",
+ "cliff_macros",
  "failure",
  "futures-util",
  "serde",
  "serde_json",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "cliff_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
