@@ -7,7 +7,7 @@ use failure::{Error, ResultExt};
 use futures::FutureExt;
 
 use cliff::client::{Delegate, InterfaceRequest, WriteInterface};
-use cliff::server::{IpcServer, Router};
+use cliff::server::IpcServer;
 
 use tokio::net::UnixStream;
 use tokio::sync::oneshot;
@@ -17,8 +17,6 @@ use uuid::Uuid;
 use super::registry::{Registry, RegistryRequest, RegistryResponse};
 
 // Registry extension
-impl Router<RegistryRequest> for Registry {}
-
 impl Registry {
     #[allow(dead_code)]
     pub fn serve(path: &str) -> Result<(), Error> {
@@ -91,8 +89,8 @@ impl StreamHandler<Result<RegistryResponse, Error>> for ProviderClient {
                     tx.send(()).unwrap();
                 }
             }
-            Ok(RegistryResponse::Error(e)) => {
-                println!("Error: {}", e);
+            Ok(RegistryResponse::Error { description }) => {
+                println!("Error: {}", description);
             }
             Ok(c) => {
                 println!("Unhandled Case: {:?}", c);
@@ -196,8 +194,8 @@ impl StreamHandler<Result<RegistryResponse, Error>> for InterfaceClient {
                     tx.send(address).unwrap();
                 }
             }
-            Ok(RegistryResponse::Error(e)) => {
-                println!("Error: {}", e);
+            Ok(RegistryResponse::Error { description }) => {
+                println!("Error: {}", description);
             }
             Ok(c) => {
                 println!("Unhandled Case: {:?}", c);

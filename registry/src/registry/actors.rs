@@ -2,7 +2,7 @@ use actix::prelude::*;
 
 use im::HashMap;
 
-use super::messages::{RegistryRequest, RegistryResponse};
+use cliff::router;
 
 pub struct Registry {
     providers: HashMap<String, String>,
@@ -20,30 +20,17 @@ impl Default for Registry {
     }
 }
 
-impl Handler<RegistryRequest> for Registry {
-    type Result = RegistryResponse;
-
-    fn handle(&mut self, msg: RegistryRequest, _ctx: &mut Self::Context) -> Self::Result {
-        use RegistryRequest::*;
-
-        let res = match msg {
-            Require { id, capability } => match self.providers.get(&capability) {
-                Some(addr) => RegistryResponse::Capability {
-                    id,
-                    address: addr.clone(),
-                },
-                None => RegistryResponse::Error("Capability Not Found".to_string()),
-            },
-            Register {
-                id,
-                capability,
-                address,
-            } => {
-                self.providers.insert(capability.clone(), address.clone());
-                RegistryResponse::Registered { id }
-            }
-        };
-
-        res
-    }
+router! {
+    Registry [
+        Require { id: String, capability: String } -> {
+            let addr = self.providers.get(&capability);
+        } => [
+            let Some(addr) = addr => Capability [String, String] { id, address: addr.clone() },
+            => Error [String] { description: "Capability Not Found".into() }
+        ],
+        Register { id: String, capability: String, address: String } -> {
+            self.providers.insert(capability, address);
+        } => Registered [String] { id }
+    ]
 }
+
