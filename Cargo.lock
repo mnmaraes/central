@@ -155,6 +155,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 
 [[package]]
+name = "calc"
+version = "0.1.0"
+dependencies = [
+ "actix",
+ "actix-rt",
+ "cliff",
+ "serde",
+]
+
+[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -180,6 +190,7 @@ dependencies = [
 name = "cliff_macros"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "proc-macro2",
  "quote",
  "syn",
@@ -231,6 +242,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "either"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 
 [[package]]
 name = "enum-as-inner"
@@ -479,6 +496,15 @@ dependencies = [
  "widestring",
  "winapi 0.3.8",
  "winreg",
+]
+
+[[package]]
+name = "itertools"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
+dependencies = [
+ "either",
 ]
 
 [[package]]

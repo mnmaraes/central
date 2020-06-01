@@ -3,5 +3,6 @@ members = [
   "tasks",
   "registry",
   "cliff",
-  "cliff_macros"
+  "cliff_macros",
+  "examples/calc"
 ]
