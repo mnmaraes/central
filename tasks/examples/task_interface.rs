@@ -8,20 +8,24 @@ use failure::Error;
 use lipsum::lipsum_title;
 
 use registry::{InterfaceClient, Require};
-use tasks::{CommandClient, GetOneQuery, GetQuery, QueryClient, TaskCommand, TaskQuery};
+use tasks::{CommandClient, Complete, Create, Get, GetOne, QueryClient, TaskQuery};
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
     let client = InterfaceClient::connect_default().await?;
 
     let cmd_path = client
-        .send(Require("task_command_provider".to_string()))
+        .send(Require {
+            capability: "task_command_provider".to_string(),
+        })
         .await?;
 
     pm(cmd_path.clone()).await?;
 
     let qry_path = client
-        .send(Require("task_query_provider".to_string()))
+        .send(Require {
+            capability: "task_query_provider".to_string(),
+        })
         .await?;
 
     worker(cmd_path, qry_path.clone()).await?;
@@ -42,7 +46,7 @@ async fn pm(path: String) -> Result<(), Error> {
         // Create client
         loop {
             if let Err(e) = client
-                .send(TaskCommand::Create {
+                .send(Create {
                     name: lipsum_title(),
                 })
                 .await
@@ -63,11 +67,16 @@ async fn worker(command: String, query: String) -> Result<(), Error> {
         let qry_client = QueryClient::connect(query.as_str()).await.unwrap();
         // Create client
         loop {
-            match qry_client.send(GetOneQuery(TaskQuery::Done(false))).await {
+            match qry_client
+                .send(GetOne {
+                    query: TaskQuery::Done(false),
+                })
+                .await
+            {
                 Ok(Some(task)) => {
                     println!("Worker: Completing task: {}", task.name);
                     cmd_client
-                        .send(TaskCommand::Complete { task_id: task.id })
+                        .send(Complete { task_id: task.id })
                         .await
                         .unwrap();
                 }
@@ -87,7 +96,12 @@ async fn board(path: String) -> Result<(), Error> {
         let client = QueryClient::connect(path.as_str()).await.unwrap();
         // Create client
         loop {
-            match client.send(GetQuery(TaskQuery::Done(false))).await {
+            match client
+                .send(Get {
+                    query: TaskQuery::Done(false),
+                })
+                .await
+            {
                 Ok(tasks) => {
                     println!("==> ToDo:");
                     for task in tasks {
