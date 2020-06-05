@@ -1,11 +1,10 @@
-mod ipc;
-mod registry;
+mod lib;
 
 use actix::prelude::*;
 
 use failure::Error;
 
-use crate::registry::Registry;
+use crate::lib::Registry;
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
