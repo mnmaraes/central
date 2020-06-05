@@ -403,7 +403,14 @@ impl Parse for ActionMapping {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
         let case = if lookahead.peek(Ident) {
-            ActionMapping::ExprMapping(Box::new(input.parse()?))
+            let name = input.parse()?;
+            let content;
+            let _ = braced!(content in input);
+            let field_values = Punctuated::<CaseFieldValue, Token![,]>::parse_terminated(&content)?
+                .iter()
+                .cloned()
+                .collect();
+            ActionMapping::BaseMapping { name, field_values }
         } else if lookahead.peek(token::Brace) {
             ActionMapping::BlockMapping(input.parse()?)
         } else {

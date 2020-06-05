@@ -15,10 +15,10 @@ impl ToTokens for RequestCase {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let RequestCase { ident, fields } = self;
         let stream = if fields.is_empty() {
-            quote! { #ident }
+            quote! { #ident { rqs_id } }
         } else {
             let field_names: Vec<Ident> = fields.iter().map(|f| f.name.clone()).collect();
-            quote! { #ident { #(#field_names),* } }
+            quote! { #ident { rqs_id, #(#field_names),* } }
         };
 
         tokens.append_all(stream);
@@ -44,11 +44,12 @@ impl ToTokens for CaseDeclaration {
         let stream = if !fields.is_empty() {
             quote! {
                 #name {
+                    rqs_id: String,
                     #(#fields),*
                 }
             }
         } else {
-            quote! { #name }
+            quote! { #name { rqs_id: String } }
         };
 
         tokens.append_all(stream);
@@ -60,13 +61,13 @@ impl ToTokens for ResponseCase {
         use ResponseCase::*;
 
         let stream = match self {
-            Empty { name } => quote! { #name },
-            Structured { name, build } => quote! { #name { #build } },
+            Empty { name } => quote! { #name { rqs_id } },
+            Structured { name, build } => quote! { #name { rqs_id, #build } },
             Typed {
                 name,
                 types: _,
                 build,
-            } => quote! { #name { #build } },
+            } => quote! { #name { rqs_id, #build } },
         };
 
         tokens.append_all(stream)
@@ -351,7 +352,7 @@ impl ToTokens for HandlerDeclaration {
             quote! { #mapping }
         } else if action_type.fields.is_empty() {
             let name = action_type.name.clone();
-            quote! { #name }
+            quote! { #name { rqs_id } }
         } else {
             quote! { #action_type }
         };
@@ -390,13 +391,13 @@ impl ToTokens for ActionType {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ActionType { name, fields } = self;
 
-        let stream = if fields.is_empty() {
-            quote! {}
-        } else {
-            let field_names: Vec<Ident> = fields.iter().map(|f| f.name.clone()).collect();
-            quote! {
-              let #name { #(#field_names),* } = msg;
-            }
+        if fields.is_empty() {
+            return;
+        }
+
+        let field_names: Vec<Ident> = fields.iter().map(|f| f.name.clone()).collect();
+        let stream = quote! {
+          let #name { #(#field_names),* } = msg;
         };
 
         tokens.append_all(stream);
@@ -408,7 +409,7 @@ impl ToTokens for ActionMapping {
         use ActionMapping::*;
 
         let stream = match self {
-            ExprMapping(expr) => quote! { #expr },
+            BaseMapping { name, field_values } => quote! { #name { rqs_id, #(#field_values),* } },
             BlockMapping(block) => quote! { #block },
         };
 
@@ -428,10 +429,10 @@ impl ToTokens for FutureRequestMapping {
         };
 
         let stream = quote! {
-          let id = ::uuid::Uuid::new_v4();
+          let rqs_id = ::uuid::Uuid::new_v4().to_string();
           let (tx, rx) = ::tokio::sync::oneshot::channel();
 
-          self.#future.insert(id.to_string(), tx);
+          self.#future.insert(rqs_id.clone(), tx);
         };
 
         tokens.append_all(stream)
@@ -443,8 +444,8 @@ impl ToTokens for ResponseMappingCase {
         use ResponseMappingCase::*;
 
         let stream = match self {
-            Empty { name } => quote! { #name },
-            Structured { name, build } => quote! { #name { #build } },
+            Empty { name } => quote! { #name { rqs_id } },
+            Structured { name, build } => quote! { #name { rqs_id, #build } },
         };
 
         tokens.append_all(stream)
@@ -500,7 +501,7 @@ impl ToTokens for IndexMapping {
         let index = Index::from(*index);
 
         let stream = quote! {
-            if let Some(tx) = self.futures.#index.remove("") {
+            if let Some(tx) = self.futures.#index.remove(&rqs_id) {
               tx.send(#action_mapping).unwrap();
             }
         };

@@ -360,7 +360,10 @@ pub struct ActionType {
 
 #[derive(Clone, Debug)]
 pub enum ActionMapping {
-    ExprMapping(Box<Expr>),
+    BaseMapping {
+        name: Ident,
+        field_values: Vec<CaseFieldValue>,
+    },
     BlockMapping(Block),
 }
 
