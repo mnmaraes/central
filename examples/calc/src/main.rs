@@ -1,6 +1,6 @@
 use actix::prelude::*;
 
-use cliff::router;
+use cliff::{client, router};
 
 struct Calculator {
     stack: Vec<f32>,
@@ -49,6 +49,40 @@ router! {
         ]
     ]
 }
+
+client! {
+    Stack {
+        actions => [
+            SetOperand { op: f32 } into Push { n: op } wait,
+            Mult wait Result<f32, String>,
+            Add wait Result<f32, String>
+        ],
+        response_mapping => [
+            Success => [
+                ()
+            ],
+            Result { result } => [
+                Result<f32, String>: Ok(result)
+            ],
+            Error { operation, description } => [
+                Result<f32, String>: Err(format!("Error: {} on operation: {}", description, operation)),
+                ()
+            ]
+        ]
+    }
+}
+
+//client! {
+//Registry named Provider [
+//Register { capability: String, address: String } wait on Registered => {}
+//]
+//}
+
+//client! {
+//Interface for Registry [
+//Require { capability: String } await String in Capability { address } => address
+//]
+//}
 
 fn main() {
     println!("Hello, world!");

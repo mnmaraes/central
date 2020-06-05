@@ -161,7 +161,11 @@ dependencies = [
  "actix",
  "actix-rt",
  "cliff",
+ "failure",
+ "futures",
  "serde",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
