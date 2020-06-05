@@ -2,6 +2,8 @@ pub mod client;
 mod codec;
 pub mod server;
 
+pub use cliff_macros::*;
+
 #[cfg(test)]
 mod tests {
     #[test]
