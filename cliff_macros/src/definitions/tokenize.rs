@@ -174,6 +174,40 @@ impl ToTokens for Client {
             .map(|mapping| FutureResponseMapping::wrap_mapping(mapping, &future_descriptors))
             .collect();
 
+        let stream_handler = if response_mapping.is_empty() {
+            quote! {}
+        } else {
+            quote! {
+                impl StreamHandler<::core::result::Result<#response_name, ::failure::Error>> for #client {
+                  fn handle(&mut self, item: Result<#response_name, ::failure::Error>, _ctx: &mut Self::Context) {
+                    use #response_name::*;
+
+                    match item {
+                      #(#response_mapping)*
+                      _ => {}
+                    }
+                  }
+                }
+            }
+        };
+
+        let create = if response_mapping.is_empty() {
+            quote! {
+                let addr = #client { writer }.start();
+            }
+        } else {
+            quote! {
+                let addr = #client::create(|ctx| {
+                  #client::listen(r, ctx);
+
+                  #client {
+                    writer,
+                    #futures_init
+                  }
+                });
+            }
+        };
+
         let stream = quote! {
             pub struct #client {
                 writer: actix::Addr<cliff::client::WriteInterface<#request_name>>,
@@ -188,16 +222,7 @@ impl ToTokens for Client {
 
             #(#handler_declarations)*
 
-            impl StreamHandler<::core::result::Result<#response_name, ::failure::Error>> for #client {
-              fn handle(&mut self, item: Result<#response_name, ::failure::Error>, _ctx: &mut Self::Context) {
-                use #response_name::*;
-
-                match item {
-                  #(#response_mapping),*
-                  _ => {}
-                }
-              }
-            }
+            #stream_handler
 
             impl #client {
               pub async fn connect(path: &str) -> core::result::Result<Addr<Self>, ::failure::Error> {
@@ -209,14 +234,7 @@ impl ToTokens for Client {
 
                 let writer = ::cliff::client::WriteInterface::<#request_name>::attach(w).await?;
 
-                let addr = #client::create(|ctx| {
-                  #client::listen(r, ctx);
-
-                  #client {
-                    writer,
-                    #futures_init
-                  }
-                });
+                #create
 
                 Ok(addr)
               }
@@ -240,7 +258,7 @@ impl Client {
                     futures: #descriptor
                 },
                 quote! {
-                    futures: ::std::colections::HashMap::new();
+                    futures: ::std::collections::HashMap::new()
                 },
             )
         } else {
@@ -354,7 +372,9 @@ impl ToTokens for HandlerDeclaration {
             let name = action_type.name.clone();
             quote! { #name { rqs_id } }
         } else {
-            quote! { #action_type }
+            let ActionType { name, fields } = action_type;
+            let fields: Vec<Ident> = fields.iter().map(|f| f.name.clone()).collect();
+            quote! { #name { rqs_id, #(#fields),* } }
         };
 
         let then_mapping = match future_mapping {
@@ -368,17 +388,20 @@ impl ToTokens for HandlerDeclaration {
 
             fn handle(&mut self, msg: #action_name, _ctx: &mut Self::Context) -> Self::Result {
               use ::futures::FutureExt;
-              use #request_name::*;
 
               #action_type;
+              let rqs_id = ::uuid::Uuid::new_v4().to_string();
 
               #future_mapping
 
-              Box::pin(
-                  self.writer
-                      .send(::cliff::client::InterfaceRequest(#request_mapping))
-                      #then_mapping
-              )
+              {
+                  use #request_name::*;
+                  Box::pin(
+                      self.writer
+                          .send(::cliff::client::InterfaceRequest(#request_mapping))
+                          #then_mapping
+                  )
+              }
             }
           }
         };
@@ -429,7 +452,6 @@ impl ToTokens for FutureRequestMapping {
         };
 
         let stream = quote! {
-          let rqs_id = ::uuid::Uuid::new_v4().to_string();
           let (tx, rx) = ::tokio::sync::oneshot::channel();
 
           self.#future.insert(rqs_id.clone(), tx);
@@ -460,7 +482,7 @@ impl ToTokens for FutureResponseMapping {
                 action_mapping,
             } => quote! {
               Ok(#mapping_case) => {
-                if let Some(tx) = self.futures.remove(&id) {
+                if let Some(tx) = self.futures.remove(&rqs_id) {
                   tx.send(#action_mapping).unwrap();
                 }
               }

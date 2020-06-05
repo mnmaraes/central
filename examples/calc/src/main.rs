@@ -72,17 +72,18 @@ client! {
     }
 }
 
-//client! {
-//Registry named Provider [
-//Register { capability: String, address: String } wait on Registered => {}
-//]
-//}
-
-//client! {
-//Interface for Registry [
-//Require { capability: String } await String in Capability { address } => address
-//]
-//}
+client! {
+    Sci {
+        actions => [
+            Sin { n: f32 } wait f32
+        ],
+        response_mapping => [
+            Result { result } => [
+                f32: result
+            ]
+        ]
+    }
+}
 
 fn main() {
     println!("Hello, world!");

@@ -293,12 +293,7 @@ impl Parse for Client {
             _ => false,
         }) {
             Some(ClientFields::ResponseMapping(mapping)) => mapping.to_vec(),
-            _ => {
-                return Err(syn::Error::new(
-                    request_type.span(),
-                    "Missing 'actions' field",
-                ))
-            }
+            _ => vec![],
         };
 
         Ok(Client {
@@ -491,7 +486,7 @@ impl Parse for ClientResponse {
 impl Parse for WaitResponse {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
-        let ty = if lookahead.peek(Token![,]) {
+        let ty = if lookahead.peek(Token![,]) || input.is_empty() {
             None
         } else if lookahead.peek(Ident) {
             Some(input.parse()?)
