@@ -518,6 +518,22 @@ impl Parse for ResponseMapping {
     }
 }
 
+impl Parse for CaseFieldMapping {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name = input.parse()?;
+        let lookahead = input.lookahead1();
+
+        let value = if lookahead.peek(Token![:]) {
+            let _: Token![:] = input.parse()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        Ok(CaseFieldMapping { name, value })
+    }
+}
+
 impl Parse for ResponseMappingCase {
     fn parse(input: ParseStream) -> Result<Self> {
         let name = input.parse()?;

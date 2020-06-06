@@ -38,6 +38,19 @@ impl ToTokens for CaseFieldValue {
     }
 }
 
+impl ToTokens for CaseFieldMapping {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let CaseFieldMapping { name, value } = self;
+        let stream = if let Some(value) = value {
+            quote! { #name: #value }
+        } else {
+            quote! { #name }
+        };
+
+        tokens.append_all(stream);
+    }
+}
+
 impl ToTokens for CaseDeclaration {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let CaseDeclaration { name, fields } = self;

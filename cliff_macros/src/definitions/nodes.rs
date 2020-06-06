@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::{From, TryFrom};
 
 use syn::punctuated::Punctuated;
-use syn::{Block, Expr, Ident, Token, Type};
+use syn::{Block, Expr, Ident, Pat, Token, Type};
 
 #[derive(Clone, Debug)]
 pub enum ServerInterface {
@@ -395,13 +395,19 @@ impl TypedActionMapping {
 }
 
 #[derive(Clone, Debug)]
+pub struct CaseFieldMapping {
+    pub(crate) name: Ident,
+    pub(crate) value: Option<Pat>,
+}
+
+#[derive(Clone, Debug)]
 pub enum ResponseMappingCase {
     Empty {
         name: Ident,
     },
     Structured {
         name: Ident,
-        build: Punctuated<CaseFieldValue, Token![,]>,
+        build: Punctuated<CaseFieldMapping, Token![,]>,
     },
 }
 

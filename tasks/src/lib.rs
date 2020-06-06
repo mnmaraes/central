@@ -129,7 +129,7 @@ client! {
         ],
         response_mapping => [
             Success => [ () ],
-            Error { description } => [ () ]
+            Error { description: _ } => [ () ]
         ]
     }
 }
