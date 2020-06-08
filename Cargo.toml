@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "tasks",
   "registry",
   "cliff",
   "cliff_macros",
-  "examples/calc"
+  "examples/calc",
+  "examples/tasks",
 ]
