@@ -15,6 +15,11 @@ use tokio_util::codec::FramedRead;
 
 use super::codec::{Decoder, Encoder};
 
+#[async_trait::async_trait]
+pub trait IpcClient: Actor {
+    async fn connect(path: &str) -> Result<Addr<Self>, Error>;
+}
+
 pub trait InterfaceMessage: Message + fmt::Debug + Serialize + Unpin {}
 
 impl<M: Message + fmt::Debug + Serialize + Unpin> InterfaceMessage for M {}

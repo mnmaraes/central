@@ -160,6 +160,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
+ "async-trait",
  "cliff",
  "failure",
  "futures",
@@ -179,6 +180,7 @@ name = "cliff"
 version = "0.1.0"
 dependencies = [
  "actix",
+ "async-trait",
  "byteorder",
  "bytes",
  "cliff_macros",
@@ -983,6 +985,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
+ "async-trait",
  "byteorder",
  "bytes",
  "cliff",
@@ -990,11 +993,22 @@ dependencies = [
  "futures",
  "futures-util",
  "im",
+ "registry_macros",
  "serde",
  "serde_json",
  "tokio",
  "tokio-util",
  "uuid",
+]
+
+[[package]]
+name = "registry_macros"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1129,6 +1143,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
+ "async-trait",
  "byteorder",
  "bytes",
  "cliff",

@@ -122,7 +122,7 @@ pub fn serve_query(path: &str, addr: &Addr<TaskStore>) -> Result<(), Error> {
 }
 
 client! {
-    TaskCommand named Command {
+    TaskCommand {
         actions => [
             Create { name: String } wait,
             Complete { task_id: String } wait
@@ -135,7 +135,7 @@ client! {
 }
 
 client! {
-    TaskQuery named Query {
+    TaskQuery {
         actions => [
             Get { query: TaskQuery } wait Vec<Task>,
             GetOne { query: TaskQuery } wait Option<Task>

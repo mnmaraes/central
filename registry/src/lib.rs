@@ -4,8 +4,13 @@ use failure::{Error, ResultExt};
 
 use im::HashMap;
 
+use cliff::client::IpcClient;
 use cliff::server::IpcServer;
 use cliff::{client, router};
+
+pub use registry_macros::provide;
+
+pub use registry_macros::*;
 
 pub struct Registry {
     providers: HashMap<String, String>,
@@ -79,6 +84,15 @@ impl ProviderClient {
             address: address.to_string(),
         })
         .await?;
+
+        Ok(addr)
+    }
+
+    #[allow(dead_code)]
+    pub async fn connect_default() -> Result<Addr<Self>, Error> {
+        let path = "/tmp/central.registry";
+
+        let addr = ProviderClient::connect(path).await?;
 
         Ok(addr)
     }

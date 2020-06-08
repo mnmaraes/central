@@ -237,8 +237,9 @@ impl ToTokens for Client {
 
             #stream_handler
 
-            impl #client {
-              pub async fn connect(path: &str) -> core::result::Result<Addr<Self>, ::failure::Error> {
+            #[async_trait::async_trait]
+            impl ::cliff::client::IpcClient for #client {
+              async fn connect(path: &str) -> core::result::Result<Addr<Self>, ::failure::Error> {
                 use ::failure::ResultExt;
                 use ::cliff::client::Delegate;
 
