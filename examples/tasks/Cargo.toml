@@ -12,6 +12,7 @@ registry = { path = "../../registry" }
 
 actix = "0.10.0-alpha.3"
 actix-rt = "1.1"
+async-trait = "0.1"
 byteorder = "1.3"
 bytes = "0.5"
 failure = "0.1.6"

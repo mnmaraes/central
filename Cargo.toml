@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "registry",
+  "registry_macros",
   "cliff",
   "cliff_macros",
   "examples/calc",

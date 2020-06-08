@@ -7,30 +7,22 @@ use failure::Error;
 
 use lipsum::lipsum_title;
 
-use registry::{InterfaceClient, Require};
-use tasks::{CommandClient, Complete, Create, Get, GetOne, QueryClient, TaskQuery};
+use registry::interface;
+
+use tasks::{Complete, Create, Get, GetOne, TaskCommandClient, TaskQuery, TaskQueryClient};
+
+interface! {
+    TaskCommand,
+    TaskQuery
+}
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
-    let client = InterfaceClient::connect_default().await?;
+    pm().await?;
 
-    let cmd_path = client
-        .send(Require {
-            capability: "task_command_provider".to_string(),
-        })
-        .await?;
+    worker().await?;
 
-    pm(cmd_path.clone()).await?;
-
-    let qry_path = client
-        .send(Require {
-            capability: "task_query_provider".to_string(),
-        })
-        .await?;
-
-    worker(cmd_path, qry_path.clone()).await?;
-
-    board(qry_path).await?;
+    board().await?;
 
     tokio::signal::ctrl_c().await?;
     println!("Ctrl-C received, shutting down");
@@ -40,10 +32,10 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn pm(path: String) -> Result<(), Error> {
+async fn pm() -> Result<(), Error> {
     Arbiter::new().send(Box::pin(async move {
-        let client = CommandClient::connect(path.as_str()).await.unwrap();
-        // Create client
+        let client = require::<TaskCommandClient>().await.unwrap();
+
         loop {
             if let Err(e) = client
                 .send(Create {
@@ -61,10 +53,10 @@ async fn pm(path: String) -> Result<(), Error> {
     Ok(())
 }
 
-async fn worker(command: String, query: String) -> Result<(), Error> {
+async fn worker() -> Result<(), Error> {
     Arbiter::new().send(Box::pin(async move {
-        let cmd_client = CommandClient::connect(command.as_str()).await.unwrap();
-        let qry_client = QueryClient::connect(query.as_str()).await.unwrap();
+        let cmd_client = require::<TaskCommandClient>().await.unwrap();
+        let qry_client = require::<TaskQueryClient>().await.unwrap();
         // Create client
         loop {
             match qry_client
@@ -91,9 +83,9 @@ async fn worker(command: String, query: String) -> Result<(), Error> {
     Ok(())
 }
 
-async fn board(path: String) -> Result<(), Error> {
+async fn board() -> Result<(), Error> {
     Arbiter::new().send(Box::pin(async move {
-        let client = QueryClient::connect(path.as_str()).await.unwrap();
+        let client = require::<TaskQueryClient>().await.unwrap();
         // Create client
         loop {
             match client
