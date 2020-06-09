@@ -2,7 +2,7 @@ table! {
     notes (id) {
         id -> Uuid,
         body -> Text,
-        createdAt -> Timestamp,
-        updatedAt -> Timestamp,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
