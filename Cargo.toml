@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "central",
   "registry",
   "registry_macros",
   "cliff",

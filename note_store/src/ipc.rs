@@ -52,6 +52,9 @@ router! {
                 => Success
             ]
         ],
+        Status [
+            Check => Alive
+        ]
     ]
 }
 
@@ -65,6 +68,17 @@ client! {
         response_mapping => [
             Success => [ () ],
             Error { description: _ } => [ () ]
+        ]
+    }
+}
+
+client! {
+    Status {
+        actions => [
+            Check wait,
+        ],
+        response_mapping => [
+            Alive => [ () ]
         ]
     }
 }
