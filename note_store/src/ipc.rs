@@ -52,11 +52,6 @@ router! {
                 => Success
             ]
         ],
-        NoteQuery [
-            Get { id: String } -> {
-                // TODO: Retrieve the note
-            } => NotFound
-        ]
     ]
 }
 

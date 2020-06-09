@@ -74,10 +74,32 @@ impl ToTokens for Provide {
             provider.to_string().as_str().to_snake_case().as_str(),
             provider.span(),
         );
+        let deregister_capabilities: Vec<_> = capabilities
+            .iter()
+            .map(|capability| {
+                let Capability { provider: _, name } = capability;
+
+                let capability_name = Ident::new(
+                    name.to_string().as_str().to_snake_case().as_str(),
+                    name.span(),
+                );
+                let capability_name_str = format!("{}", capability_name);
+
+                let error_str = format!("Couldn't deregister {}", capability_name);
+
+                quote! {
+                    registry_client.send(::registry::Deregister {
+                        capability: #capability_name_str.to_string(),
+                    })
+                    .await
+                    .expect(#error_str);
+                }
+            })
+            .collect();
 
         let stream = quote! {
             async fn register_providers() -> ::core::result::Result<::actix::Addr<#provider>, ::failure::Error> {
-                use ::actix::*;
+                use ::registry::actix::*;
 
                 let #var_name = #provider::start_default();
                 let registry_client = ::registry::ProviderClient::connect_default().await?;
@@ -85,6 +107,16 @@ impl ToTokens for Provide {
                 #(#capabilities)*
 
                 Ok(#var_name)
+            }
+
+            async fn deregister_providers() {
+                use ::registry::actix::*;
+
+                let registry_client = ::registry::ProviderClient::connect_default()
+                    .await
+                    .expect("Couldn't connect with registry to deregister capabilities");
+
+                #(#deregister_capabilities)*
             }
         };
 
@@ -110,13 +142,13 @@ impl ToTokens for Capability {
         let request_type = Ident::new(format!("{}Request", name).as_str(), name.span());
 
         let stream = quote! {
-            ::actix::Arbiter::spawn(Box::pin({
+            ::registry::actix::Arbiter::spawn(Box::pin({
                 let #var_name = #var_name.clone();
                 let registry_client = registry_client.clone();
 
                 async move {
-                    let path = format!("/tmp/central.{}.{}", #capability_name_str, ::uuid::Uuid::new_v4());
-                    ::cliff::server::IpcServer::<#request_type, #provider>::serve(path.as_str(), #var_name)
+                    let path = format!("/tmp/central.{}.{}", #capability_name_str, ::registry::uuid::Uuid::new_v4());
+                    ::registry::cliff::server::IpcServer::<#request_type, #provider>::serve(path.as_str(), #var_name)
                         .expect("Couldn't start server for capability: #capability");
                     registry_client.send(::registry::Register {
                         capability: #capability_name_str.to_string(),
@@ -164,7 +196,7 @@ impl ToTokens for Interface {
 
             #(#impls)*
 
-            async fn require<T: ::cliff::client::IpcClient + RegistryRequireableCapability>() -> ::core::result::Result<::actix::Addr<T>, ::failure::Error> {
+            async fn require<T: ::registry::cliff::client::IpcClient + RegistryRequireableCapability>() -> ::core::result::Result<::registry::actix::Addr<T>, ::registry::failure::Error> {
                 let interface_client = ::registry::InterfaceClient::connect_default().await?;
                 let path = interface_client
                     .send(::registry::Require { capability: T::get_capability_name() })

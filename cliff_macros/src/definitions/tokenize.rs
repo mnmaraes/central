@@ -1,3 +1,5 @@
+use proc_macro2::TokenStream;
+
 use quote::{quote, ToTokens, TokenStreamExt};
 
 use syn::{Ident, Index};
@@ -5,14 +7,14 @@ use syn::{Ident, Index};
 use super::nodes::*;
 
 impl ToTokens for CaseField {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let CaseField { name, ty } = self;
         tokens.append_all(quote! { #name: #ty })
     }
 }
 
 impl ToTokens for RequestCase {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let RequestCase { ident, fields } = self;
         let stream = if fields.is_empty() {
             quote! { #ident { rqs_id } }
@@ -26,7 +28,7 @@ impl ToTokens for RequestCase {
 }
 
 impl ToTokens for CaseFieldValue {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let CaseFieldValue { name, value } = self;
         let stream = if let Some(value) = value {
             quote! { #name: #value }
@@ -39,7 +41,7 @@ impl ToTokens for CaseFieldValue {
 }
 
 impl ToTokens for CaseFieldMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let CaseFieldMapping { name, value } = self;
         let stream = if let Some(value) = value {
             quote! { #name: #value }
@@ -52,7 +54,7 @@ impl ToTokens for CaseFieldMapping {
 }
 
 impl ToTokens for CaseDeclaration {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let CaseDeclaration { name, fields } = self;
         let stream = if !fields.is_empty() {
             quote! {
@@ -70,7 +72,7 @@ impl ToTokens for CaseDeclaration {
 }
 
 impl ToTokens for ResponseCase {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         use ResponseCase::*;
 
         let stream = match self {
@@ -88,7 +90,7 @@ impl ToTokens for ResponseCase {
 }
 
 impl ToTokens for Response {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let stream = match self {
             Response::Base { case } => quote! {
                 #case
@@ -132,7 +134,7 @@ impl ToTokens for Response {
 }
 
 impl ToTokens for RequestHandler {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let RequestHandler {
             request_case,
             block,
@@ -160,7 +162,7 @@ impl ToTokens for RequestHandler {
 }
 
 impl ToTokens for Client {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let Client {
             request_type: _,
             client_name: _,
@@ -191,8 +193,8 @@ impl ToTokens for Client {
             quote! {}
         } else {
             quote! {
-                impl StreamHandler<::core::result::Result<#response_name, ::failure::Error>> for #client {
-                  fn handle(&mut self, item: Result<#response_name, ::failure::Error>, _ctx: &mut Self::Context) {
+                impl StreamHandler<::core::result::Result<#response_name, ::cliff::failure::Error>> for #client {
+                  fn handle(&mut self, item: Result<#response_name, ::cliff::failure::Error>, _ctx: &mut Self::Context) {
                     use #response_name::*;
 
                     match item {
@@ -223,7 +225,7 @@ impl ToTokens for Client {
 
         let stream = quote! {
             pub struct #client {
-                writer: actix::Addr<cliff::client::WriteInterface<#request_name>>,
+                writer: ::cliff::actix::Addr<::cliff::client::WriteInterface<#request_name>>,
                 #futures_declaration
             }
 
@@ -237,14 +239,14 @@ impl ToTokens for Client {
 
             #stream_handler
 
-            #[async_trait::async_trait]
+            #[::cliff::async_trait::async_trait]
             impl ::cliff::client::IpcClient for #client {
               async fn connect(path: &str) -> core::result::Result<Addr<Self>, ::failure::Error> {
-                use ::failure::ResultExt;
+                use ::cliff::failure::ResultExt;
                 use ::cliff::client::Delegate;
 
-                let stream = ::tokio::net::UnixStream::connect(path).await?;
-                let (r, w) = ::tokio::io::split(stream);
+                let stream = ::cliff::tokio::net::UnixStream::connect(path).await?;
+                let (r, w) = ::cliff::tokio::io::split(stream);
 
                 let writer = ::cliff::client::WriteInterface::<#request_name>::attach(w).await?;
 
@@ -260,9 +262,7 @@ impl ToTokens for Client {
 }
 
 impl Client {
-    fn get_futures(
-        future_descriptors: &[FutureDescriptor],
-    ) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
+    fn get_futures(future_descriptors: &[FutureDescriptor]) -> (TokenStream, TokenStream) {
         if future_descriptors.is_empty() {
             (quote! {}, quote! {})
         } else if future_descriptors.len() == 1 {
@@ -276,7 +276,7 @@ impl Client {
                 },
             )
         } else {
-            let hashes: Vec<proc_macro2::TokenStream> = future_descriptors
+            let hashes: Vec<TokenStream> = future_descriptors
                 .iter()
                 .cloned()
                 .map(|_| quote! { ::std::collections::HashMap::new() })
@@ -295,7 +295,7 @@ impl Client {
 }
 
 impl ToTokens for ActionDeclaration {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let ActionDeclaration {
             name,
             fields,
@@ -305,7 +305,7 @@ impl ToTokens for ActionDeclaration {
         let (long_decl, short_decl) = if let Some(ty) = result_type {
             (
                 Some(quote! {
-                    impl ::actix::Message for #name {
+                    impl ::cliff::actix::Message for #name {
                         type Result = #ty;
                     }
                 }),
@@ -346,18 +346,18 @@ impl ToTokens for ActionDeclaration {
 }
 
 impl ToTokens for FutureDescriptor {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let def = quote! { () };
         let result_type = self.result_type.clone().map_or(def, |ty| quote! { #ty });
 
-        let stream = quote! { std::collections::HashMap<String, ::tokio::sync::oneshot::Sender<#result_type>> };
+        let stream = quote! { std::collections::HashMap<String, ::cliff::tokio::sync::oneshot::Sender<#result_type>> };
 
         tokens.append_all(stream);
     }
 }
 
 impl ToTokens for HandlerDeclaration {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let HandlerDeclaration {
             client_name,
             request_name,
@@ -401,10 +401,10 @@ impl ToTokens for HandlerDeclaration {
             type Result = ResponseFuture<#response_type>;
 
             fn handle(&mut self, msg: #action_name, _ctx: &mut Self::Context) -> Self::Result {
-              use ::futures::FutureExt;
+              use ::cliff::futures::FutureExt;
 
               #action_type;
-              let rqs_id = ::uuid::Uuid::new_v4().to_string();
+              let rqs_id = ::cliff::uuid::Uuid::new_v4().to_string();
 
               #future_mapping
 
@@ -425,7 +425,7 @@ impl ToTokens for HandlerDeclaration {
 }
 
 impl ToTokens for ActionType {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let ActionType { name, fields } = self;
 
         if fields.is_empty() {
@@ -442,7 +442,7 @@ impl ToTokens for ActionType {
 }
 
 impl ToTokens for ActionMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         use ActionMapping::*;
 
         let stream = match self {
@@ -455,7 +455,7 @@ impl ToTokens for ActionMapping {
 }
 
 impl ToTokens for FutureRequestMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let future = match self {
             FutureRequestMapping::Indexed(idx) => {
                 let index = Index::from(*idx);
@@ -466,7 +466,7 @@ impl ToTokens for FutureRequestMapping {
         };
 
         let stream = quote! {
-          let (tx, rx) = ::tokio::sync::oneshot::channel();
+          let (tx, rx) = ::cliff::tokio::sync::oneshot::channel();
 
           self.#future.insert(rqs_id.clone(), tx);
         };
@@ -476,7 +476,7 @@ impl ToTokens for FutureRequestMapping {
 }
 
 impl ToTokens for ResponseMappingCase {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         use ResponseMappingCase::*;
 
         let stream = match self {
@@ -489,7 +489,7 @@ impl ToTokens for ResponseMappingCase {
 }
 
 impl ToTokens for FutureResponseMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let stream = match self {
             FutureResponseMapping::Single {
                 mapping_case,
@@ -516,7 +516,7 @@ impl ToTokens for FutureResponseMapping {
 }
 
 impl ToTokens for TypedActionMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let stream = match self {
             TypedActionMapping::UnitMapping { block: Some(block) } => quote! { #block },
             TypedActionMapping::UnitMapping { block: None } => quote! { () },
@@ -529,7 +529,7 @@ impl ToTokens for TypedActionMapping {
 }
 
 impl ToTokens for IndexMapping {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let IndexMapping {
             index,
             action_mapping,

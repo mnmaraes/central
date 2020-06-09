@@ -48,29 +48,29 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
     let handlers = message.handlers;
 
     quote! {
-        #[derive(serde::Serialize, serde::Deserialize, Debug)]
-        #[serde(tag = "message", content = "data")]
+        #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, Debug)]
+        #[serde(crate = "::cliff::serde", tag = "message", content = "data")]
         pub enum #request_type_name {
             #request_cases
         }
 
-        impl actix::Message for #request_type_name {
+        impl ::cliff::actix::Message for #request_type_name {
             type Result = #response_type_name;
         }
 
-        #[derive(serde::Serialize, serde::Deserialize, actix::Message, Debug)]
+        #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, ::cliff::actix::Message, Debug)]
         #[rtype(result = "()")]
-        #[serde(tag = "message", content = "data")]
+        #[serde(crate = "::cliff::serde", tag = "message", content = "data")]
         pub enum #response_type_name {
             #response_cases
         }
 
-        impl<A, M> actix::dev::MessageResponse<A, M> for #response_type_name
+        impl<A, M> ::cliff::actix::dev::MessageResponse<A, M> for #response_type_name
         where
-            A: actix::Actor,
-            M: actix::Message<Result = #response_type_name>,
+            A: ::cliff::actix::Actor,
+            M: ::cliff::actix::Message<Result = #response_type_name>,
         {
-            fn handle<R: actix::dev::ResponseChannel<M>>(self, _: &mut A::Context, tx: Option<R>) {
+            fn handle<R: ::cliff::actix::dev::ResponseChannel<M>>(self, _: &mut A::Context, tx: Option<R>) {
                 if let Some(tx) = tx {
                     tx.send(self);
                 }
@@ -90,7 +90,7 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             }
         }
 
-        impl cliff::server::Router<#request_type_name> for #router_type {}
+        impl ::cliff::server::Router<#request_type_name> for #router_type {}
     }
 }
 

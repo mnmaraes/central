@@ -1,3 +1,10 @@
+pub extern crate actix;
+pub extern crate actix_rt;
+pub extern crate cliff;
+pub extern crate failure;
+pub extern crate tokio;
+pub extern crate uuid;
+
 use actix::prelude::*;
 
 use failure::{Error, ResultExt};
@@ -38,7 +45,10 @@ router! {
         ],
         Register { capability: String, address: String } -> {
             self.providers.insert(capability, address);
-        } => Registered
+        } => Success,
+        Deregister { capability: String } -> {
+            self.providers.remove(&capability);
+        } => Success
     ]
 }
 
@@ -64,10 +74,11 @@ impl Registry {
 client! {
     Registry named Provider {
         actions => [
-            Register { capability: String, address: String } wait
+            Register { capability: String, address: String } wait,
+            Deregister { capability: String } wait
         ],
         response_mapping => [
-            Registered => [ () ]
+            Success => [ () ]
         ]
     }
 }
