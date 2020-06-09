@@ -30,13 +30,13 @@ pub fn run_provide(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
         #provide
 
         #[actix_rt::main]
-        async fn main() -> Result<(), Error> {
+        async fn main() -> Result<(), ::failure::Error> {
             register_providers().await?;
 
             tokio::signal::ctrl_c().await?;
             println!("Ctrl-C received, shutting down");
 
-            System::current().stop();
+            ::actix::System::current().stop();
 
             Ok(())
         }

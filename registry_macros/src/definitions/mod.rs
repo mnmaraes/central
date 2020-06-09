@@ -76,9 +76,11 @@ impl ToTokens for Provide {
         );
 
         let stream = quote! {
-            async fn register_providers() -> ::core::result::Result<Addr<#provider>, ::failure::Error> {
+            async fn register_providers() -> ::core::result::Result<::actix::Addr<#provider>, ::failure::Error> {
+                use ::actix::*;
+
                 let #var_name = #provider::start_default();
-                let registry_client = registry::ProviderClient::connect_default().await?;
+                let registry_client = ::registry::ProviderClient::connect_default().await?;
 
                 #(#capabilities)*
 
@@ -162,7 +164,7 @@ impl ToTokens for Interface {
 
             #(#impls)*
 
-            async fn require<T: ::cliff::client::IpcClient + RegistryRequireableCapability>() -> ::core::result::Result<Addr<T>, ::failure::Error> {
+            async fn require<T: ::cliff::client::IpcClient + RegistryRequireableCapability>() -> ::core::result::Result<::actix::Addr<T>, ::failure::Error> {
                 let interface_client = ::registry::InterfaceClient::connect_default().await?;
                 let path = interface_client
                     .send(::registry::Require { capability: T::get_capability_name() })
