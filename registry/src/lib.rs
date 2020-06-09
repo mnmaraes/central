@@ -9,6 +9,8 @@ use actix::prelude::*;
 
 use failure::{Error, ResultExt};
 
+use tracing::info;
+
 use im::HashMap;
 
 use cliff::client::IpcClient;
@@ -37,18 +39,24 @@ impl Default for Registry {
 
 router! {
     Registry [
+        // Interface
         Require { capability: String } -> {
+            info!("Client Requiring Capability: {}", capability);
             let addr = self.providers.get(&capability);
         } => [
             let Some(addr) = addr => Capability [String] { address: addr.clone() },
             => Error [String] { description: "Capability Not Found".into() }
         ],
+        // Provider
         Register { capability: String, address: String } -> {
+            info!("Client Registering Capability: {}", capability);
             self.providers.insert(capability, address);
         } => Success,
         Deregister { capability: String } -> {
+            info!("Client Deregistering Capability: {}", capability);
             self.providers.remove(&capability);
         } => Success
+
     ]
 }
 
