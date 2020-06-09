@@ -29,16 +29,22 @@ pub fn run_provide(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::from(quote! {
         #provide
 
-        #[actix_rt::main]
-        async fn main() -> Result<(), Error> {
-            register_providers().await?;
+        fn main() -> Result<(), ::registry::failure::Error> {
+            ::registry::actix_rt::System::new("main").block_on(async move {
+                let _: Result<(), ::registry::failure::Error> = {
+                    register_providers().await?;
 
-            tokio::signal::ctrl_c().await?;
-            println!("Ctrl-C received, shutting down");
+                    ::registry::tokio::signal::ctrl_c().await?;
+                    Ok(())
+                };
 
-            System::current().stop();
+                deregister_providers().await;
+                ::registry::actix::System::current().stop();
 
-            Ok(())
+                println!("Shutting Down");
+
+                Ok(())
+            })
         }
     })
 }

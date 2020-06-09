@@ -4,6 +4,10 @@ members = [
   "registry_macros",
   "cliff",
   "cliff_macros",
+  "note_store",
   "examples/calc",
   "examples/tasks",
 ]
+
+[profile.release]
+lto = true
