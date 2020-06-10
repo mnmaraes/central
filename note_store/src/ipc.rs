@@ -1,5 +1,7 @@
 use std::env;
 
+use failure::{format_err, Error};
+
 use actix::prelude::*;
 
 use cliff::{client, router};
@@ -42,14 +44,22 @@ router! {
             Update { id: String, body: String } -> {
                 let res = update_note(&self.connection, &id, &body);
             } => [
-                let Err(e) = res => Error [String] { description: format!("Error Creating Note: {}", e) },
+                let Err(e) = res => Error { description: format!("Error Creating Note: {}", e) },
                 => Success
             ],
             Delete { id: String } -> {
                 let res = delete_note(&self.connection, &id);
             } =>[
-                let Err(e) = res => Error [String] { description: format!("Error Creating Note: {}", e) },
+                let Err(e) = res => Error { description: format!("Error Creating Note: {}", e) },
                 => Success
+            ]
+        ],
+        NoteQuery [
+            Get -> {
+                let res = get_all(&self.connection);
+            } => [
+                let Err(e) = res => Error [String] { description: format!("Error Fetching Notes: {}", e) },
+                => Notes [Vec<Note>] { notes: res.unwrap() }
             ]
         ],
         NoteStoreStatus [
@@ -68,6 +78,22 @@ client! {
         response_mapping => [
             Success => [ () ],
             Error { description: _ } => [ () ]
+        ]
+    }
+}
+
+client! {
+    NoteQuery {
+        actions => [
+            Get wait Result<Vec<Note>, Error>,
+        ],
+        response_mapping => [
+            Notes { notes } => [
+                Result<Vec<Note>, Error>: Ok(notes)
+            ],
+            Error { description  } => [
+                Result<Vec<Note>, Error>: Err(format_err!("{}",description))
+            ]
         ]
     }
 }

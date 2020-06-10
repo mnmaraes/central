@@ -3,7 +3,7 @@ mod status;
 
 use clap::Clap;
 
-use notes::Note;
+use notes::NoteCommand;
 use status::Status;
 
 /// The cli for Central
@@ -23,7 +23,7 @@ impl Central {
 #[derive(Clap)]
 enum Commands {
     Status(Status),
-    Note(Note),
+    Note(NoteCommand),
 }
 
 impl Commands {

@@ -7,8 +7,8 @@ mod schema;
 
 use registry::run_provide;
 
-use ipc::{NoteCommandRequest, NoteStore, NoteStoreStatusRequest};
+use ipc::{NoteCommandRequest, NoteQueryRequest, NoteStore, NoteStoreStatusRequest};
 
 run_provide! {
-    NoteStore => [NoteCommand, NoteStoreStatus]
+    NoteStore => [NoteCommand, NoteStoreStatus, NoteQuery]
 }

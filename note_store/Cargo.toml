@@ -12,7 +12,8 @@ registry = { path = "../registry" }
 
 actix = "0.10.0-alpha.3"
 failure = "0.1.6"
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "0.8", features = ["v4", "serde"] }
 
 dotenv = "0.15"
 diesel = { version = "1.4", features = ["postgres", "uuidv07"] }
+serde = { version = "1.0", features = ["derive"]}

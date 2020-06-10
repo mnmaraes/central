@@ -13,6 +13,7 @@ registry = { path = "../registry" }
 actix-rt = "1.1"
 actix = "0.10.0-alpha.3"
 
+dialoguer = "0.6"
 clap = "3.0.0-beta.1"
 tempfile = "3"
 rayon = "1.3"
