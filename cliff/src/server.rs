@@ -18,6 +18,8 @@ use tokio::stream::StreamExt;
 
 use tokio_util::codec::FramedRead;
 
+use tracing::{error, info, span, Level};
+
 use super::codec::{Decoder, Encoder};
 
 pub trait InboundMessage: Message + DeserializeOwned + Send + Unpin {}
@@ -55,6 +57,9 @@ where
     R::Context: ToEnvelope<R, In>,
 {
     fn handle(&mut self, msg: Result<In, Error>, ctx: &mut Self::Context) {
+        let span = span!(Level::TRACE, "Cliff Server StreamHandler");
+        let _enter = span.enter();
+
         match msg {
             Ok(input) => self
                 .router
@@ -63,12 +68,12 @@ where
                 .then(|res, act, _| {
                     match res {
                         Ok(res) => act.client.write(res),
-                        Err(e) => println!("Error responding to request: {:?}", e),
+                        Err(e) => error!("Error responding to request: {}", e.to_string()),
                     }
                     async {}.into_actor(act)
                 })
                 .wait(ctx),
-            Err(e) => println!("Error handling msg: {}", e.to_string()),
+            Err(e) => error!("Error handling msg: {}", e.to_string()),
         }
     }
 }
@@ -120,6 +125,9 @@ where
     }
 
     pub fn serve(path: &str, router: Addr<R>) -> Result<(), Error> {
+        let span = span!(Level::TRACE, "Serving Router", path);
+        let _enter = span.enter();
+
         let listener = Box::new(open_uds_listener(path).context("Couldn't open socket")?);
 
         IpcServer::create(move |ctx| {
@@ -141,7 +149,7 @@ fn open_uds_listener(path: &str) -> Result<UnixListener, Error> {
         Err(e) if e.kind() == ErrorKind::AddrInUse => {
             // 1. Handle cases where file exists
             // TODO: Handle it more gracefully (Ask user whether to force or abort)
-            println!("A connection file already exists. Removing it.");
+            info!("A connection file already exists. Removing it.");
             fs::remove_file(&path)?;
 
             UnixListener::bind(&path).map_err(Error::from)

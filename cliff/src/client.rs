@@ -1,5 +1,4 @@
 use std::fmt;
-use std::marker::PhantomData;
 
 use actix::prelude::*;
 
@@ -71,64 +70,5 @@ where
 {
     fn listen(r: ReadHalf<UnixStream>, ctx: &mut Self::Context) {
         ctx.add_stream(FramedRead::new(r, Decoder::<I>::new()));
-    }
-}
-
-// System Responder
-pub trait SystemResponder<I: InterfaceResponse>:
-    Actor + actix::Supervised + SystemService + Handler<I>
-{
-    fn subscribe(r: ReadHalf<UnixStream>) -> Result<(), Error>;
-}
-
-impl<I: InterfaceResponse + 'static, R: Actor + actix::Supervised + SystemService + Handler<I>>
-    SystemResponder<I> for R
-where
-    I::Result: Send,
-{
-    fn subscribe(r: ReadHalf<UnixStream>) -> Result<(), Error> {
-        Arbiter::spawn(async move {
-            SystemForwardClient::<I, R>::create(|ctx| {
-                ctx.add_stream(FramedRead::new(r, Decoder::<I>::new()));
-                SystemForwardClient::new()
-            });
-        });
-
-        Ok(())
-    }
-}
-
-// Forwarding Client
-struct SystemForwardClient<I: InterfaceResponse, R: SystemResponder<I>> {
-    i: PhantomData<I>,
-    r: PhantomData<R>,
-}
-
-impl<I: InterfaceResponse + 'static, R: SystemResponder<I>> Actor for SystemForwardClient<I, R> {
-    type Context = Context<Self>;
-}
-
-impl<I: InterfaceResponse + 'static, R: SystemResponder<I>> StreamHandler<Result<I, Error>>
-    for SystemForwardClient<I, R>
-where
-    I::Result: Send,
-{
-    fn handle(&mut self, item: Result<I, Error>, _ctx: &mut Self::Context) {
-        match item {
-            Ok(msg) => {
-                let act = R::from_registry();
-                act.do_send(msg);
-            }
-            Err(e) => println!("Error: {}", e),
-        }
-    }
-}
-
-impl<I: InterfaceResponse, R: SystemResponder<I>> SystemForwardClient<I, R> {
-    pub fn new() -> Self {
-        Self {
-            i: PhantomData,
-            r: PhantomData,
-        }
     }
 }
