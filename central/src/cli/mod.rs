@@ -1,8 +1,10 @@
 mod notes;
+mod status;
 
 use clap::Clap;
 
 use notes::Note;
+use status::Status;
 
 /// The cli for Central
 #[derive(Clap)]
@@ -20,6 +22,7 @@ impl Central {
 
 #[derive(Clap)]
 enum Commands {
+    Status(Status),
     Note(Note),
 }
 
@@ -28,6 +31,7 @@ impl Commands {
         use Commands::*;
 
         match self {
+            Status(status) => status.run(),
             Note(note) => note.run(),
         };
     }

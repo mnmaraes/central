@@ -52,7 +52,7 @@ router! {
                 => Success
             ]
         ],
-        Status [
+        NoteStoreStatus [
             Check => Alive
         ]
     ]
@@ -73,7 +73,7 @@ client! {
 }
 
 client! {
-    Status {
+    NoteStoreStatus {
         actions => [
             Check wait,
         ],

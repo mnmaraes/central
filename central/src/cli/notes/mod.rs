@@ -6,11 +6,11 @@ use clap::Clap;
 
 use tempfile::Builder;
 
-use note_store::{Check, Create, NoteCommandClient, StatusClient};
+use note_store::{Check, Create, NoteCommandClient, NoteStoreStatusClient};
 
 registry::interface! {
     NoteCommand,
-    Status
+    NoteStoreStatus
 }
 
 /// Manages the raw note data.
@@ -50,8 +50,7 @@ impl CreateNote {
         };
 
         actix_rt::System::new("main").block_on(async move {
-            // Check NoteStore status before writing our note
-            let status_client = require::<StatusClient>().await.unwrap();
+            let status_client = require::<NoteStoreStatusClient>().await.unwrap();
             status_client
                 .send(Check)
                 .await

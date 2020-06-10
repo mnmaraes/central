@@ -200,7 +200,7 @@ impl ToTokens for Interface {
                 let interface_client = ::registry::InterfaceClient::connect_default().await?;
                 let path = interface_client
                     .send(::registry::Require { capability: T::get_capability_name() })
-                    .await?;
+                    .await??;
 
                 T::connect(path.as_str()).await
             }
