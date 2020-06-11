@@ -8,9 +8,10 @@ use tempfile::Builder;
 
 use dialoguer::Select;
 
-use note_store::{
-    Check, Create, Get, Note, NoteCommandClient, NoteQueryClient, NoteStoreStatusClient, Update,
-};
+use note_store::command_client::{Create, Delete, NoteCommandClient, Update};
+use note_store::model::Note;
+use note_store::query_client::{Get, NoteQueryClient};
+use note_store::status_client::{Check, NoteStoreStatusClient};
 
 registry::interface! {
     NoteCommand,
@@ -135,8 +136,6 @@ impl UpdateNote {
                 .read_to_string(&mut contents)
                 .expect("Couldn't read file");
 
-            println!("{}", contents);
-
             let note_client = require::<NoteCommandClient>().await.unwrap();
             note_client
                 .send(Update {
@@ -149,8 +148,45 @@ impl UpdateNote {
     }
 }
 
+/// Selects and deletes an existing note
+#[derive(Clap)]
+struct DeleteNote;
+
+impl DeleteNote {
+    fn run(&self) {
+        actix_rt::System::new("main").block_on(async move {
+            let query_client = require::<NoteQueryClient>().await.unwrap();
+            let notes: Vec<Note> = query_client
+                .send(Get)
+                .await
+                .expect("Couldn't fetch existing notes")
+                .expect("Couldn't fetch existing notes");
+
+            let first_lines: Vec<_> = notes
+                .iter()
+                .filter_map(|note| note.body.lines().next())
+                .collect();
+
+            let selection = Select::new()
+                .with_prompt("Select note to delete:")
+                .items(&first_lines)
+                .interact()
+                .unwrap();
+
+            let note_client = require::<NoteCommandClient>().await.unwrap();
+            note_client
+                .send(Delete {
+                    id: notes[selection].id.to_string(),
+                })
+                .await
+                .expect("Failed To Notify Note Sore");
+        });
+    }
+}
+
 #[derive(Clap)]
 enum NoteCommands {
+    Delete(DeleteNote),
     Update(UpdateNote),
     New(CreateNote),
 }
@@ -160,6 +196,7 @@ impl NoteCommands {
         use NoteCommands::*;
 
         match self {
+            Delete(delete) => delete.run(),
             Update(update) => update.run(),
             New(create_note) => create_note.run(),
         };

@@ -9,7 +9,7 @@ use tokio::time::timeout;
 
 use clap::Clap;
 
-use note_store::{Check, NoteStoreStatusClient};
+use note_store::status_client::{Check, NoteStoreStatusClient};
 use registry::{interface, StatusClient};
 
 interface! {
