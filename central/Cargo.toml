@@ -1,5 +1,5 @@
 [package]
-name = "note_store"
+name = "central"
 version = "0.1.0"
 authors = ["Murillo Nicacio <mnmaraes@gmail.com>"]
 edition = "2018"
@@ -7,13 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cliff = { path = "../cliff" }
+note_store = { path = "../note_store" }
 registry = { path = "../registry" }
 
+actix-rt = "1.1"
 actix = "0.10.0-alpha.3"
-failure = "0.1.6"
-uuid = { version = "0.8", features = ["v4", "serde"] }
 
-dotenv = "0.15"
-diesel = { version = "1.4", features = ["postgres", "uuidv07"] }
-serde = { version = "1.0", features = ["derive"]}
+dialoguer = "0.6"
+clap = "3.0.0-beta.1"
+tempfile = "3"
+rayon = "1.3"
+tokio = { version = "0.2", features = ["time"] }

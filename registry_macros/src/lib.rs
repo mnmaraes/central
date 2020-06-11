@@ -41,8 +41,6 @@ pub fn run_provide(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 deregister_providers().await;
                 ::registry::actix::System::current().stop();
 
-                println!("Shutting Down");
-
                 Ok(())
             })
         }

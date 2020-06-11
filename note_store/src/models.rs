@@ -4,11 +4,13 @@ use failure::Error;
 
 use diesel::prelude::*;
 
+use serde::{Deserialize, Serialize};
+
 use uuid::Uuid;
 
 use super::schema::notes;
 
-#[derive(Queryable, Identifiable)]
+#[derive(Queryable, Identifiable, Debug, Serialize, Deserialize)]
 pub struct Note {
     pub id: Uuid,
     pub body: String,
@@ -50,4 +52,12 @@ pub fn delete_note(conn: &PgConnection, note_id: &str) -> Result<(), Error> {
     diesel::delete(notes.find(note_id)).execute(conn)?;
 
     Ok(())
+}
+
+pub fn get_all(conn: &PgConnection) -> Result<Vec<Note>, Error> {
+    use self::notes::dsl::*;
+
+    let results = notes.load::<Note>(conn)?;
+
+    Ok(results)
 }

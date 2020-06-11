@@ -7,7 +7,7 @@ pub extern crate uuid;
 
 use actix::prelude::*;
 
-use failure::{Error, ResultExt};
+use failure::{format_err, Error, ResultExt};
 
 use tracing::info;
 
@@ -55,8 +55,9 @@ router! {
         Deregister { capability: String } -> {
             info!("Client Deregistering Capability: {}", capability);
             self.providers.remove(&capability);
-        } => Success
-
+        } => Success,
+        // Status
+        Check => Alive
     ]
 }
 
@@ -120,12 +121,26 @@ impl ProviderClient {
 client! {
     Registry named Interface {
         actions => [
-            Require { capability: String } wait String
+            Require { capability: String } wait Result<String, Error>
         ],
         response_mapping => [
             Capability { address } => [
-                String: address
+                Result<String, Error>: Ok(address)
+            ],
+            Error { description } => [
+                Result<String, Error>: Err(format_err!("Error: {}", description))
             ]
+        ]
+    }
+}
+
+client! {
+    Registry named Status {
+        actions => [
+            Check wait,
+        ],
+        response_mapping => [
+            Alive => [ () ]
         ]
     }
 }
@@ -134,5 +149,18 @@ impl InterfaceClient {
     #[allow(dead_code)]
     pub async fn connect_default() -> Result<Addr<Self>, Error> {
         InterfaceClient::connect("/tmp/central.registry").await
+    }
+}
+
+impl StatusClient {
+    #[allow(dead_code)]
+    pub async fn check_default() -> Result<(), Error> {
+        let path = "/tmp/central.registry";
+
+        let addr = StatusClient::connect(path).await?;
+
+        addr.send(Check).await?;
+
+        Ok(())
     }
 }
