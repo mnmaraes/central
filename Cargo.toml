@@ -1,10 +1,14 @@
 [workspace]
 members = [
-  "central",
+  # Core
   "macros",
   "registry",
   "cliff",
+  # Features
   "note_store",
+  "project",
+  # Interfaces
+  "central",
 ]
 
 [profile.release]

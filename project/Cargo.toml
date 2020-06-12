@@ -1,0 +1,20 @@
+[package]
+name = "project"
+version = "0.1.0"
+authors = ["Murillo Nicacio <mnmaraes@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cliff = { path = "../cliff" }
+registry = { path = "../registry" }
+macros = { path = "../macros", features = ["store"] }
+
+actix = "0.10.0-alpha.3"
+failure = "0.1.6"
+uuid = { version = "0.8", features = ["v4", "serde"] }
+
+dotenv = "0.15"
+diesel = { version = "1.4", features = ["postgres", "uuidv07"] }
+serde = { version = "1.0", features = ["derive"]}

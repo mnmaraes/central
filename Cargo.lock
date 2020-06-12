@@ -1052,6 +1052,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "project"
+version = "0.1.0"
+dependencies = [
+ "actix",
+ "cliff",
+ "diesel",
+ "dotenv",
+ "failure",
+ "macros",
+ "registry",
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
