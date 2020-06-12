@@ -6,3 +6,6 @@ pub mod registry;
 
 #[cfg(feature = "cli")]
 pub mod cli;
+
+#[cfg(feature = "store")]
+pub mod store;

@@ -874,6 +874,7 @@ dependencies = [
  "diesel",
  "dotenv",
  "failure",
+ "macros",
  "registry",
  "serde",
  "uuid",

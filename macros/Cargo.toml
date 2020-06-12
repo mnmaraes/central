@@ -9,7 +9,7 @@ edition = "2018"
 cliff = ["itertools"]
 registry = ["heck"]
 cli = []
-carrier = []
+store = ["itertools"]
 
 [dependencies]
 syn = { version = "1.0", features = ["full"] }

@@ -17,6 +17,9 @@ use definitions::registry::{Interface, Provide};
 #[cfg(feature = "cli")]
 use definitions::cli::Cli;
 
+#[cfg(feature = "store")]
+use definitions::store::Ipc;
+
 #[cfg(feature = "cliff")]
 #[proc_macro]
 pub fn client(tokens: TokenStream) -> TokenStream {
@@ -27,7 +30,7 @@ pub fn client(tokens: TokenStream) -> TokenStream {
 
 #[cfg(feature = "cliff")]
 #[proc_macro]
-pub fn router(tokens: proc_macro::TokenStream) -> TokenStream {
+pub fn router(tokens: TokenStream) -> TokenStream {
     let router = parse_macro_input!(tokens as Router);
 
     let expanded = build_router(router);
@@ -37,26 +40,26 @@ pub fn router(tokens: proc_macro::TokenStream) -> TokenStream {
 
 #[cfg(feature = "registry")]
 #[proc_macro]
-pub fn interface(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn interface(tokens: TokenStream) -> TokenStream {
     let interface = parse_macro_input!(tokens as Interface);
 
-    proc_macro::TokenStream::from(quote! { #interface })
+    TokenStream::from(quote! { #interface })
 }
 
 #[cfg(feature = "registry")]
 #[proc_macro]
-pub fn provide(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn provide(tokens: TokenStream) -> TokenStream {
     let provide = parse_macro_input!(tokens as Provide);
 
-    proc_macro::TokenStream::from(quote! { #provide })
+    TokenStream::from(quote! { #provide })
 }
 
 #[cfg(feature = "registry")]
 #[proc_macro]
-pub fn run_provide(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn run_provide(tokens: TokenStream) -> TokenStream {
     let provide = parse_macro_input!(tokens as Provide);
 
-    proc_macro::TokenStream::from(quote! {
+    TokenStream::from(quote! {
         #provide
 
         fn main() -> Result<(), ::registry::failure::Error> {
@@ -83,4 +86,12 @@ pub fn cli(tokens: TokenStream) -> TokenStream {
     let cli = parse_macro_input!(tokens as Cli);
 
     TokenStream::from(quote! { #cli })
+}
+
+#[cfg(feature = "store")]
+#[proc_macro]
+pub fn ipc(tokens: TokenStream) -> TokenStream {
+    let ipc = parse_macro_input!(tokens as Ipc);
+
+    TokenStream::from(quote! { #ipc })
 }
