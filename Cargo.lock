@@ -205,6 +205,7 @@ dependencies = [
  "actix",
  "actix-rt",
  "clap",
+ "cli",
  "dialoguer",
  "note_store",
  "rayon",
@@ -257,6 +258,22 @@ checksum = "fb51c9e75b94452505acd21d929323f5a5c6c4735a852adbd39ef5fb1b014f30"
 dependencies = [
  "heck",
  "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "cli_macros",
+]
+
+[[package]]
+name = "cli_macros"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",

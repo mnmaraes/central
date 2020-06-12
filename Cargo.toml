@@ -1,6 +1,8 @@
 [workspace]
 members = [
   "central",
+  "cli",
+  "cli_macros",
   "registry",
   "registry_macros",
   "cliff",

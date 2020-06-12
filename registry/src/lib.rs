@@ -17,8 +17,6 @@ use cliff::client::IpcClient;
 use cliff::server::IpcServer;
 use cliff::{client, router};
 
-pub use registry_macros::provide;
-
 pub use registry_macros::*;
 
 pub struct Registry {
