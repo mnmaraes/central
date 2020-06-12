@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 cliff = { path = "../cliff" }
 registry = { path = "../registry" }
+macros = { path = "../macros", features = ["store"] }
 
 actix = "0.10.0-alpha.3"
 failure = "0.1.6"

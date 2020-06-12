@@ -1,15 +1,10 @@
 [workspace]
 members = [
   "central",
-  "cli",
-  "cli_macros",
+  "macros",
   "registry",
-  "registry_macros",
   "cliff",
-  "cliff_macros",
   "note_store",
-  "examples/calc",
-  "examples/tasks",
 ]
 
 [profile.release]

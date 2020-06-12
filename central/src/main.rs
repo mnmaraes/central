@@ -2,7 +2,7 @@ mod runners;
 
 use clap::Clap;
 
-use cli::cli;
+use macros::cli;
 
 use runners::*;
 

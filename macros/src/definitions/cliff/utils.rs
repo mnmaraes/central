@@ -6,7 +6,7 @@ use quote::quote;
 
 use syn::Ident;
 
-use super::definitions::{
+use super::nodes::{
     CaseDeclaration, RequestHandler, Response, Router, ServerInterface, ServerMessage,
 };
 
