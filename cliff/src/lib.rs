@@ -10,7 +10,7 @@ pub mod client;
 mod codec;
 pub mod server;
 
-pub use cliff_macros::*;
+pub use macros::*;
 
 #[cfg(test)]
 mod tests {

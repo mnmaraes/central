@@ -17,7 +17,7 @@ use cliff::client::IpcClient;
 use cliff::server::IpcServer;
 use cliff::{client, router};
 
-pub use registry_macros::*;
+pub use macros::*;
 
 pub struct Registry {
     providers: HashMap<String, String>,
