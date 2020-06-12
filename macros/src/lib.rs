@@ -95,3 +95,35 @@ pub fn ipc(tokens: TokenStream) -> TokenStream {
 
     TokenStream::from(quote! { #ipc })
 }
+
+#[cfg(feature = "store")]
+#[proc_macro]
+pub fn provide_store(tokens: TokenStream) -> TokenStream {
+    let name = parse_macro_input!(tokens as syn::Ident);
+
+    let store_name = quote::format_ident!("{}Store", name);
+    let command_name = quote::format_ident!("{}Command", name);
+    let query_name = quote::format_ident!("{}Query", name);
+    let status_name = quote::format_ident!("{}Status", store_name);
+
+    let command_request_name = quote::format_ident!("{}CommandRequest", name);
+    let query_request_name = quote::format_ident!("{}QueryRequest", name);
+    let status_request_name = quote::format_ident!("{}StatusRequest", store_name);
+
+    TokenStream::from(quote! {
+        #[macro_use]
+        extern crate diesel;
+
+        mod ipc;
+        mod models;
+        mod schema;
+
+        use registry::run_provide;
+
+        use ipc::{#store_name, #command_request_name, #query_request_name, #status_request_name};
+
+        run_provide! {
+            #store_name => [#command_name, #status_name, #query_name]
+        }
+    })
+}
