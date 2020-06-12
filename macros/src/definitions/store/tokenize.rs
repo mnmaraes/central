@@ -36,81 +36,77 @@ impl ToTokens for Ipc {
             .collect();
 
         let stream = quote! {
-            mod ipc {
-                use super::*;
+            use failure::{format_err, Error};
 
-                use failure::{format_err, Error};
+            use ::actix::prelude::*;
+            use ::diesel::prelude::*;
 
-                use ::actix::prelude::*;
-                use ::diesel::prelude::*;
+            pub struct #store_name {
+                connection: PgConnection,
+            }
 
-                pub struct #store_name {
-                    connection: PgConnection,
+            impl Default for #store_name {
+                fn default() -> Self {
+                    ::dotenv::dotenv().expect("Unable to load environment");
+
+                    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var not found");
+
+                    let connection = PgConnection::establish(&database_url)
+                        .unwrap_or_else(|_| panic!("Couldn't connect to {}", database_url));
+
+                    #store_name { connection }
                 }
+            }
 
-                impl Default for #store_name {
-                    fn default() -> Self {
-                        ::dotenv::dotenv().expect("Unable to load environment");
+            impl Actor for #store_name {
+                type Context = Context<Self>;
+            }
 
-                        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var not found");
+            ::cliff::router! {
+                #store_name;
+                [
+                    #command_name [
+                        #(#cmd_router_actions),*
+                    ],
+                    #query_name [
+                        #(#qry_router_actions),*
+                    ],
+                    #status_name [
+                        Check => Alive
+                    ]
+                ]
+            }
 
-                        let connection = PgConnection::establish(&database_url)
-                            .unwrap_or_else(|_| panic!("Couldn't connect to {}", database_url));
-
-                        #store_name { connection }
-                    }
+            ::cliff::client! {
+                #command_name {
+                    actions => [
+                        #(#cmd_client_handlers),*
+                    ],
+                    response_mapping => [
+                        Success => [ () ],
+                        Error => [ () ]
+                    ]
                 }
+            }
 
-                impl Actor for #store_name {
-                    type Context = Context<Self>;
-                }
-
-                ::cliff::router! {
-                    #store_name;
-                    [
-                        #command_name [
-                            #(#cmd_router_actions),*
-                        ],
-                        #query_name [
-                            #(#qry_router_actions),*
-                        ],
-                        #status_name [
-                            Check => Alive
+            ::cliff::client! {
+                #query_name {
+                    actions => [
+                        #(#qry_client_handlers),*
+                    ],
+                    response_mapping => [
+                        #(#qry_response_mappings,)*
+                        Error { description  } => [
+                            #(Result<#query_response_types, Error>: Err(format_err!("{}",description))),*
                         ]
                     ]
                 }
+            }
 
-                ::cliff::client! {
-                    #command_name {
-                        actions => [
-                            #(#cmd_client_handlers),*
-                        ],
-                        response_mapping => [
-                            Success => [ () ],
-                            Error => [ () ]
-                        ]
-                    }
-                }
-
-                ::cliff::client! {
-                    #query_name {
-                        actions => [
-                            #(#qry_client_handlers),*
-                        ],
-                        response_mapping => [
-                            #(#qry_response_mappings,)*
-                            Error { description  } => [
-                                #(Result<#query_response_types, Error>: Err(format_err!("{}",description))),*
-                            ]
-                        ]
-                    }
-                }
-
-                ::cliff::client! {
-                    #status_name {
-                        actions => [ Check wait, ],
-                        response_mapping => [ Alive => [ () ] ]
-                    }
+            ::cliff::client! {
+                #status_name {
+                    actions => [ Check wait, ],
+                    response_mapping => [ Alive => [ () ] ]
                 }
             }
         };
