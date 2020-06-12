@@ -2,10 +2,8 @@
 members = [
   "central",
   "macros",
-  "cli",
   "registry",
   "cliff",
-  "carrier",
   "note_store",
 ]
 

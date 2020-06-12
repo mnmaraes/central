@@ -178,18 +178,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 
 [[package]]
-name = "carrier"
-version = "0.1.0"
-
-[[package]]
 name = "central"
 version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
  "clap",
- "cli",
  "dialoguer",
+ "macros",
  "note_store",
  "rayon",
  "registry",
@@ -244,13 +240,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "macros",
 ]
 
 [[package]]
