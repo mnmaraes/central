@@ -41,6 +41,8 @@ impl ToTokens for Ipc {
             use ::actix::prelude::*;
             use ::diesel::prelude::*;
 
+            use super::models::*;
+
             pub struct #store_name {
                 connection: PgConnection,
             }

@@ -1,8 +1,4 @@
-use macros::ipc;
-
-use super::models::{create_note, delete_note, get_all, update_note, Note};
-
-ipc! {
+macros::ipc! {
     Note {
         command => [
             Create { body: String } -> {
