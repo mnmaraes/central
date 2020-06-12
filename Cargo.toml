@@ -3,15 +3,10 @@ members = [
   "central",
   "macros",
   "cli",
-  "cli_macros",
   "registry",
-  "registry_macros",
   "cliff",
-  "cliff_macros",
   "carrier",
   "note_store",
-  "examples/calc",
-  "examples/tasks",
 ]
 
 [profile.release]
