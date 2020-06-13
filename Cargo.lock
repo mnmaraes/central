@@ -178,13 +178,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 
 [[package]]
-name = "central"
+name = "central_cli"
 version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
  "clap",
  "dialoguer",
+ "failure",
  "macros",
  "note_store",
  "rayon",
@@ -855,6 +856,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "models"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "net2"
 version = "0.2.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -875,8 +885,8 @@ dependencies = [
  "dotenv",
  "failure",
  "macros",
+ "models",
  "registry",
- "serde",
  "uuid",
 ]
 
@@ -1061,6 +1071,7 @@ dependencies = [
  "dotenv",
  "failure",
  "macros",
+ "models",
  "registry",
  "serde",
  "uuid",

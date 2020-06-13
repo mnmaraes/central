@@ -1,22 +1,12 @@
-use std::time::SystemTime;
-
 use failure::Error;
 
 use diesel::prelude::*;
 
-use serde::{Deserialize, Serialize};
-
 use uuid::Uuid;
 
-use super::schema::projects;
+use models::projects;
 
-#[derive(Queryable, Identifiable, Debug, Serialize, Deserialize)]
-pub struct Project {
-    pub id: Uuid,
-    pub key_note: Uuid,
-    pub created_at: SystemTime,
-    pub updated_at: SystemTime,
-}
+pub use models::Project;
 
 #[derive(Insertable)]
 #[table_name = "projects"]

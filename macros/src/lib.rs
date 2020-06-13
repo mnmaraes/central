@@ -116,7 +116,6 @@ pub fn provide_store(tokens: TokenStream) -> TokenStream {
 
         mod ipc;
         mod models;
-        mod schema;
 
         use registry::run_provide;
 

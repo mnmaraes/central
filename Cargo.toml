@@ -4,11 +4,12 @@ members = [
   "macros",
   "registry",
   "cliff",
-  # Features
+  "models",
+  # Stores
   "note_store",
-  "project",
+  "project_store",
   # Interfaces
-  "central",
+  "central_cli",
 ]
 
 [profile.release]

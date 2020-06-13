@@ -3,10 +3,9 @@ extern crate diesel;
 
 mod ipc;
 mod models;
-mod schema;
 
 pub mod model {
-    pub use crate::models::Note;
+    pub use models::Note;
 }
 
 pub mod command_client {

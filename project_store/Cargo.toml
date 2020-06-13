@@ -10,6 +10,7 @@ edition = "2018"
 cliff = { path = "../cliff" }
 registry = { path = "../registry" }
 macros = { path = "../macros", features = ["store"] }
+models = { path = "../models", features = ["store", "projects"] }
 
 actix = "0.10.0-alpha.3"
 failure = "0.1.6"

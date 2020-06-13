@@ -1,8 +1,8 @@
 macros::ipc! {
     Project {
         command => [
-            Create { name: String } -> {
-                create_project(&self.connection, &name)
+            Create { note_id: String } -> {
+                create_project(&self.connection, &note_id)
             },
             Delete { id: String } -> {
                 delete_project(&self.connection, &id)

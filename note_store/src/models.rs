@@ -1,26 +1,15 @@
-use std::time::SystemTime;
-
 use failure::Error;
 
 use diesel::prelude::*;
 
-use serde::{Deserialize, Serialize};
-
 use uuid::Uuid;
 
-use super::schema::notes;
-
-#[derive(Queryable, Identifiable, Debug, Serialize, Deserialize)]
-pub struct Note {
-    pub id: Uuid,
-    pub body: String,
-    pub created_at: SystemTime,
-    pub updated_at: SystemTime,
-}
+use models::notes;
+pub use models::Note;
 
 #[derive(Insertable)]
 #[table_name = "notes"]
-pub struct NewNote<'a> {
+struct NewNote<'a> {
     pub body: &'a str,
 }
 

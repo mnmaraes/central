@@ -1,13 +1,4 @@
 table! {
-    note (id) {
-        id -> Uuid,
-        body -> Varchar,
-        createdAt -> Timestamp,
-        updatedAt -> Timestamp,
-    }
-}
-
-table! {
     notes (id) {
         id -> Uuid,
         body -> Text,
@@ -28,7 +19,6 @@ table! {
 joinable!(projects -> notes (key_note));
 
 allow_tables_to_appear_in_same_query!(
-    note,
     notes,
     projects,
 );

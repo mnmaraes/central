@@ -1,12 +1,9 @@
+mod utils;
+
 use std::collections::HashMap;
-use std::env::var;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::BufRead;
 use std::process::Command;
 use std::time::{Duration, Instant};
-
-use dialoguer::Select;
-
-use tempfile::Builder;
 
 use tokio::time::timeout;
 
@@ -14,14 +11,14 @@ use rayon::prelude::*;
 
 use note_store::command_client::{Create, Delete, NoteCommandClient, Update};
 use note_store::model::Note;
-use note_store::query_client::{Get, NoteQueryClient};
 use note_store::status_client::{Check, NoteStoreStatusClient};
+
+use utils::*;
 
 use registry::{interface, StatusClient};
 
 interface! {
     NoteCommand,
-    NoteQuery,
     NoteStoreStatus
 }
 
@@ -79,15 +76,7 @@ pub fn check_status() {
 }
 
 pub fn create_note() {
-    let file = Builder::new()
-        .suffix(".md")
-        .tempfile()
-        .expect("Couldn't create a temporary file");
-
-    let editor_cmd = match var("EDITOR") {
-        Ok(editor) => editor,
-        Err(_) => "vi".to_string(),
-    };
+    let editor = TmpEditor::new();
 
     actix_rt::System::new("main").block_on(async move {
         let status_client = require::<NoteStoreStatusClient>().await.unwrap();
@@ -96,14 +85,12 @@ pub fn create_note() {
             .await
             .expect("Couldn't contact Note Store. Make sure it is running and registered");
 
-        Command::new(editor_cmd)
-            .arg(file.path().to_str().unwrap())
-            .status()
-            .expect("Failed to start editor");
+        editor.open().expect("Editor exited with error code");
 
         let mut contents = String::new();
-        BufReader::new(file.into_file())
-            .read_to_string(&mut contents)
+
+        editor
+            .read_contents_to_string(&mut contents)
             .expect("Couldn't read file");
 
         let note_client = require::<NoteCommandClient>().await.unwrap();
@@ -116,82 +103,37 @@ pub fn create_note() {
 
 pub fn delete_note() {
     actix_rt::System::new("main").block_on(async move {
-        let query_client = require::<NoteQueryClient>().await.unwrap();
-        let notes: Vec<Note> = query_client
-            .send(Get)
-            .await
-            .expect("Couldn't fetch existing notes")
-            .expect("Couldn't fetch existing notes");
-
-        let first_lines: Vec<_> = notes
-            .iter()
-            .filter_map(|note| note.body.lines().next())
-            .collect();
-
-        let selection = Select::new()
-            .with_prompt("Select note to delete:")
-            .items(&first_lines)
-            .interact()
-            .unwrap();
+        let Note { id, .. } = select_note().await.expect("Couldn't select note");
 
         let note_client = require::<NoteCommandClient>().await.unwrap();
         note_client
-            .send(Delete {
-                id: notes[selection].id.to_string(),
-            })
+            .send(Delete { id: id.to_string() })
             .await
             .expect("Failed To Notify Note Sore");
     });
 }
 
 pub fn update_note() {
-    let mut file = Builder::new()
-        .suffix(".md")
-        .tempfile()
-        .expect("Couldn't create a temporary file");
-
-    let editor_cmd = match var("EDITOR") {
-        Ok(editor) => editor,
-        Err(_) => "vi".to_string(),
-    };
+    let mut editor = TmpEditor::new();
 
     actix_rt::System::new("main").block_on(async move {
-        let query_client = require::<NoteQueryClient>().await.unwrap();
-        let notes: Vec<Note> = query_client
-            .send(Get)
-            .await
-            .expect("Couldn't fetch existing notes")
-            .expect("Couldn't fetch existing notes");
+        let Note { id, body, .. } = select_note().await.expect("Couldn't select note");
 
-        let first_lines: Vec<_> = notes
-            .iter()
-            .filter_map(|note| note.body.lines().next())
-            .collect();
-
-        let selection = Select::new()
-            .with_prompt("Select note to update:")
-            .items(&first_lines)
-            .interact()
-            .unwrap();
-
-        BufWriter::new(file.as_file_mut())
-            .write_all(notes[selection].body.as_bytes())
+        editor
+            .load_contents(&body)
             .expect("Couldn't write note to file");
 
-        Command::new(editor_cmd)
-            .arg(file.path().to_str().unwrap())
-            .status()
-            .expect("Failed to start editor");
+        editor.open().expect("Failed to start editor");
 
         let mut contents = String::new();
-        BufReader::new(file.reopen().unwrap())
-            .read_to_string(&mut contents)
+        editor
+            .read_contents_to_string(&mut contents)
             .expect("Couldn't read file");
 
         let note_client = require::<NoteCommandClient>().await.unwrap();
         note_client
             .send(Update {
-                id: notes[selection].id.to_string(),
+                id: id.to_string(),
                 body: contents,
             })
             .await
