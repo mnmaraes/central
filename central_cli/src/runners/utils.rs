@@ -70,6 +70,7 @@ pub async fn select_note() -> Result<Note, Error> {
         .collect();
 
     let selection = Select::new()
+        .default(0)
         .with_prompt("Select note to delete:")
         .items(&first_lines)
         .interact()?;
