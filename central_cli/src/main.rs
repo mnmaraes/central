@@ -15,6 +15,8 @@ cli! {
         Note.[
             /// Creates a new note and saves it to central
             New => create_note,
+            /// Shows a list of the currently stored notes
+            List => list_notes,
             /// Selects and deletes an existing note
             Delete => delete_note,
             /// Selects and updates an existing note
