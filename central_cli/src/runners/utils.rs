@@ -55,9 +55,14 @@ impl TmpEditor {
     }
 }
 
-pub async fn select_note() -> Result<Note, Error> {
+pub async fn get_notes() -> Result<Vec<Note>, Error> {
     let query_client = require::<NoteQueryClient>().await?;
-    let notes: Vec<Note> = query_client.send(Get).await??;
+
+    Ok(query_client.send(Get).await??)
+}
+
+pub async fn select_note() -> Result<Note, Error> {
+    let notes: Vec<Note> = get_notes().await?;
 
     let first_lines: Vec<_> = notes
         .iter()
@@ -65,6 +70,7 @@ pub async fn select_note() -> Result<Note, Error> {
         .collect();
 
     let selection = Select::new()
+        .default(0)
         .with_prompt("Select note to delete:")
         .items(&first_lines)
         .interact()?;

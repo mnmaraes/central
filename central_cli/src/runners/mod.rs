@@ -101,6 +101,17 @@ pub fn create_note() {
     });
 }
 
+pub fn list_notes() {
+    actix_rt::System::new("main").block_on(async move {
+        get_notes()
+            .await
+            .expect("Couldn't fetch notes")
+            .iter()
+            .filter_map(|note| note.body.lines().next())
+            .for_each(|line| println!("{}", line));
+    });
+}
+
 pub fn delete_note() {
     actix_rt::System::new("main").block_on(async move {
         let Note { id, .. } = select_note().await.expect("Couldn't select note");
