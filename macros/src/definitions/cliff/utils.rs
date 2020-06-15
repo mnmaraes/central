@@ -49,7 +49,7 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
 
     quote! {
         #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, Debug)]
-        #[serde(crate = "::cliff::serde", tag = "message", content = "data")]
+        #[serde(crate = "::cliff::serde")]
         pub enum #request_type_name {
             #request_cases
         }
@@ -60,7 +60,7 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
 
         #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, ::cliff::actix::Message, Debug)]
         #[rtype(result = "()")]
-        #[serde(crate = "::cliff::serde", tag = "message", content = "data")]
+        #[serde(crate = "::cliff::serde")]
         pub enum #response_type_name {
             #response_cases
         }
