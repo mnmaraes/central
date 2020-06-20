@@ -19,13 +19,13 @@ use tokio_util::codec::FramedRead;
 
 use tracing::{error, info, span, Level};
 
-use super::codec::{Decoder, Encoder};
+use super::codec::{rpc::RpcMessage, Decoder, Encoder};
 
-pub trait ServerRequest: Message + DeserializeOwned + Send + Unpin {}
-pub trait ServerResponse: Serialize + Send + Unpin {}
+pub trait ServerRequest: Message + DeserializeOwned + RpcMessage + Send + Unpin {}
+pub trait ServerResponse: Serialize + RpcMessage + Send + Unpin {}
 
-impl<M: Message + DeserializeOwned + Send + Unpin> ServerRequest for M {}
-impl<M: Serialize + Send + Unpin> ServerResponse for M {}
+impl<M: Message + DeserializeOwned + RpcMessage + Send + Unpin> ServerRequest for M {}
+impl<M: Serialize + RpcMessage + Send + Unpin> ServerResponse for M {}
 
 pub trait Router<In: ServerRequest>: Actor + Handler<In> {}
 

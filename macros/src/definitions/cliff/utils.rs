@@ -54,6 +54,12 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             #request_cases
         }
 
+        impl ::cliff::rpc::RpcMessage for #request_type_name {
+            fn rpc_message_type(&self) -> ::cliff::rpc::RpcMessageType {
+                ::cliff::rpc::RpcMessageType::Request
+            }
+        }
+
         impl ::cliff::actix::Message for #request_type_name {
             type Result = #response_type_name;
         }
@@ -63,6 +69,12 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
         #[serde(crate = "::cliff::serde")]
         pub enum #response_type_name {
             #response_cases
+        }
+
+        impl ::cliff::rpc::RpcMessage for #response_type_name {
+            fn rpc_message_type(&self) -> ::cliff::rpc::RpcMessageType {
+                ::cliff::rpc::RpcMessageType::Response
+            }
         }
 
         impl<A, M> ::cliff::actix::dev::MessageResponse<A, M> for #response_type_name

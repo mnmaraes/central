@@ -51,6 +51,8 @@ impl<Out: Serialize + RpcMessage> tokio_util::codec::Encoder<Out> for Encoder<Ou
             RpcMessageType::Error => parse_encoded_error_value(&value)?,
         };
 
+        info!("Encoding: {:?}", to_encode);
+
         rmpv::encode::write_value(&mut dst.writer(), &to_encode)?;
 
         Ok(())
@@ -89,7 +91,7 @@ impl<In: DeserializeOwned> tokio_util::codec::Decoder for Decoder<In> {
             None => return Ok(None),
         };
         let to_parse = src.split_to(size);
-        info!("Decoding: {:?}", to_parse);
+        info!("Decoding: {:?}", to_parse.to_vec());
         // TODO: Decode the rpc format passed back
         let value = parse_array(&rmpv::decode::read_value(&mut to_parse.reader())?)?;
 

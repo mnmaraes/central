@@ -10,16 +10,16 @@ use tokio::net::UnixStream;
 
 use tokio_util::codec::FramedRead;
 
-use super::codec::{Decoder, Encoder};
+use super::codec::{rpc::RpcMessage, Decoder, Encoder};
 
 #[async_trait::async_trait]
 pub trait IpcClient: Actor {
     async fn connect(path: &str) -> Result<Addr<Self>, Error>;
 }
 
-pub trait InterfaceMessage: Message + Serialize + Unpin {}
+pub trait InterfaceMessage: Message + RpcMessage + Serialize + Unpin {}
 
-impl<M: Message + Serialize + Unpin> InterfaceMessage for M {}
+impl<M: Message + RpcMessage + Serialize + Unpin> InterfaceMessage for M {}
 
 #[derive(Message)]
 #[rtype(result = "()")]

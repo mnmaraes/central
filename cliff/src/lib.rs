@@ -10,6 +10,10 @@ pub mod client;
 mod codec;
 pub mod server;
 
+pub mod rpc {
+    pub use super::codec::rpc::{RpcMessage, RpcMessageType};
+}
+
 pub use macros::*;
 
 #[cfg(test)]

@@ -1,5 +1,4 @@
-mod msgpack;
 pub mod rpc;
 
-pub use msgpack::{Decoder, Encoder};
+pub use rpc::msgpack::{Decoder, Encoder};
 
