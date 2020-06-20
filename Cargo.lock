@@ -255,12 +255,13 @@ dependencies = [
  "futures",
  "futures-util",
  "macros",
+ "rand",
  "rmp-serde",
+ "rmpv",
  "serde",
  "tokio",
  "tokio-util",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -1264,6 +1265,16 @@ dependencies = [
  "byteorder",
  "rmp",
  "serde",
+]
+
+[[package]]
+name = "rmpv"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8e5078dd8691b0811b14fbd2d78358f7fc68e83b98ba6f16488bf77694e9fe2"
+dependencies = [
+ "num-traits",
+ "rmp",
 ]
 
 [[package]]

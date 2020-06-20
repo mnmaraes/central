@@ -1,5 +1,3 @@
-use std::fmt;
-
 use actix::prelude::*;
 
 use failure::Error;
@@ -19,9 +17,9 @@ pub trait IpcClient: Actor {
     async fn connect(path: &str) -> Result<Addr<Self>, Error>;
 }
 
-pub trait InterfaceMessage: Message + fmt::Debug + Serialize + Unpin {}
+pub trait InterfaceMessage: Message + Serialize + Unpin {}
 
-impl<M: Message + fmt::Debug + Serialize + Unpin> InterfaceMessage for M {}
+impl<M: Message + Serialize + Unpin> InterfaceMessage for M {}
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -59,7 +57,6 @@ pub trait InterfaceResponse: Message + DeserializeOwned + Unpin + Send {}
 
 impl<M: Message + DeserializeOwned + Unpin + Send> InterfaceResponse for M {}
 
-// Basic Routing
 pub trait Delegate<I: InterfaceResponse>: Actor {
     fn listen(r: ReadHalf<UnixStream>, ctx: &mut Self::Context);
 }

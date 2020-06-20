@@ -59,12 +59,12 @@ impl ToTokens for CaseDeclaration {
         let stream = if !fields.is_empty() {
             quote! {
                 #name {
-                    rqs_id: String,
+                    rqs_id: u32,
                     #(#fields),*
                 }
             }
         } else {
-            quote! { #name { rqs_id: String } }
+            quote! { #name { rqs_id: u32 } }
         };
 
         tokens.append_all(stream);
@@ -208,7 +208,10 @@ impl ToTokens for Client {
 
         let create = if response_mapping.is_empty() {
             quote! {
-                let addr = #client { writer }.start();
+                let addr = #client {
+                    next_id: ::cliff::rand::random(),
+                    writer
+                }.start();
             }
         } else {
             quote! {
@@ -216,6 +219,7 @@ impl ToTokens for Client {
                   #client::listen(r, ctx);
 
                   #client {
+                    next_id: ::cliff::rand::random(),
                     writer,
                     #futures_init
                   }
@@ -225,6 +229,7 @@ impl ToTokens for Client {
 
         let stream = quote! {
             pub struct #client {
+                next_id: u32,
                 writer: ::cliff::actix::Addr<::cliff::client::WriteInterface<#request_name>>,
                 #futures_declaration
             }
@@ -350,7 +355,7 @@ impl ToTokens for FutureDescriptor {
         let def = quote! { () };
         let result_type = self.result_type.clone().map_or(def, |ty| quote! { #ty });
 
-        let stream = quote! { std::collections::HashMap<String, ::cliff::tokio::sync::oneshot::Sender<#result_type>> };
+        let stream = quote! { std::collections::HashMap<u32, ::cliff::tokio::sync::oneshot::Sender<#result_type>> };
 
         tokens.append_all(stream);
     }
@@ -404,7 +409,8 @@ impl ToTokens for HandlerDeclaration {
               use ::cliff::futures::FutureExt;
 
               #action_type;
-              let rqs_id = ::cliff::uuid::Uuid::new_v4().to_string();
+              let rqs_id = self.next_id;
+              self.next_id += 1;
 
               #future_mapping
 
