@@ -1,4 +1,3 @@
-use std::fmt;
 use std::fs;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
@@ -20,40 +19,39 @@ use tokio_util::codec::FramedRead;
 
 use tracing::{error, info, span, Level};
 
-use super::codec::{Decoder, Encoder};
+use super::codec::{rpc::RpcMessage, Decoder, Encoder};
 
-pub trait InboundMessage: Message + DeserializeOwned + Send + Unpin {}
-pub trait OutboundMessage: fmt::Debug + Serialize + Send + Unpin {}
+pub trait ServerRequest: Message + DeserializeOwned + RpcMessage + Send + Unpin {}
+pub trait ServerResponse: Serialize + RpcMessage + Send + Unpin {}
 
-impl<M: Message + DeserializeOwned + Send + Unpin> InboundMessage for M {}
-impl<M: fmt::Debug + Serialize + Send + Unpin> OutboundMessage for M {}
+impl<M: Message + DeserializeOwned + RpcMessage + Send + Unpin> ServerRequest for M {}
+impl<M: Serialize + RpcMessage + Send + Unpin> ServerResponse for M {}
 
-pub trait Router<In: InboundMessage>: Actor + Handler<In> {}
+pub trait Router<In: ServerRequest>: Actor + Handler<In> {}
 
-struct Session<In: InboundMessage, R: Router<In>>
+struct Session<In: ServerRequest, R: Router<In>>
 where
-    In::Result: OutboundMessage,
+    In::Result: ServerResponse,
 {
     router: Addr<R>,
     client: actix::io::FramedWrite<In::Result, WriteHalf<UnixStream>, Encoder<In::Result>>,
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> Actor for Session<In, R>
+impl<In: ServerRequest + 'static, R: Router<In>> Actor for Session<In, R>
 where
-    In::Result: OutboundMessage,
+    In::Result: ServerResponse,
 {
     type Context = Context<Self>;
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> actix::io::WriteHandler<Error> for Session<In, R> where
-    In::Result: OutboundMessage
+impl<In: ServerRequest + 'static, R: Router<In>> actix::io::WriteHandler<Error> for Session<In, R> where
+    In::Result: ServerResponse
 {
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> StreamHandler<Result<In, Error>>
-    for Session<In, R>
+impl<In: ServerRequest + 'static, R: Router<In>> StreamHandler<Result<In, Error>> for Session<In, R>
 where
-    In::Result: OutboundMessage,
+    In::Result: ServerResponse,
     R::Context: ToEnvelope<R, In>,
 {
     fn handle(&mut self, msg: Result<In, Error>, ctx: &mut Self::Context) {
@@ -82,18 +80,18 @@ where
 #[rtype(result = "()")]
 pub struct IpcConnect(pub UnixStream, pub net::SocketAddr);
 
-pub struct IpcServer<In: InboundMessage, R: Router<In>> {
+pub struct IpcServer<In: ServerRequest, R: Router<In>> {
     inbound_message: PhantomData<In>,
     router: Addr<R>,
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> Actor for IpcServer<In, R> {
+impl<In: ServerRequest + 'static, R: Router<In>> Actor for IpcServer<In, R> {
     type Context = Context<Self>;
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> Handler<IpcConnect> for IpcServer<In, R>
+impl<In: ServerRequest + 'static, R: Router<In>> Handler<IpcConnect> for IpcServer<In, R>
 where
-    In::Result: OutboundMessage,
+    In::Result: ServerResponse,
     R::Context: ToEnvelope<R, In>,
 {
     type Result = ();
@@ -112,9 +110,9 @@ where
     }
 }
 
-impl<In: InboundMessage + 'static, R: Router<In>> IpcServer<In, R>
+impl<In: ServerRequest + 'static, R: Router<In>> IpcServer<In, R>
 where
-    In::Result: OutboundMessage,
+    In::Result: ServerResponse,
     R::Context: ToEnvelope<R, In>,
 {
     fn new(router: Addr<R>) -> Self {
