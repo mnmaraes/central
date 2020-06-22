@@ -185,6 +185,7 @@ dependencies = [
  "actix-rt",
  "clap",
  "dialoguer",
+ "dotenv",
  "failure",
  "macros",
  "note_store",
@@ -192,6 +193,9 @@ dependencies = [
  "registry",
  "tempfile",
  "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -251,13 +255,12 @@ dependencies = [
  "async-trait",
  "byteorder",
  "bytes",
+ "codec",
  "failure",
  "futures",
  "futures-util",
  "macros",
  "rand",
- "rmp-serde",
- "rmpv",
  "serde",
  "tokio",
  "tokio-util",
@@ -271,6 +274,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "codec"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "failure",
+ "rmp-serde",
+ "rmpv",
+ "serde",
+ "serde_json",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]
@@ -1207,9 +1224,6 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-rt",
- "async-trait",
- "byteorder",
- "bytes",
  "cliff",
  "dotenv",
  "failure",
@@ -1217,10 +1231,7 @@ dependencies = [
  "futures-util",
  "im",
  "macros",
- "serde",
- "serde_json",
  "tokio",
- "tokio-util",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

@@ -58,12 +58,22 @@ pub fn provide(tokens: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn run_provide(tokens: TokenStream) -> TokenStream {
     let provide = parse_macro_input!(tokens as Provide);
+    let ident = provide.provider.clone();
+
+    let file_name = format!("{}.log", ident);
 
     TokenStream::from(quote! {
         #provide
 
         fn main() -> Result<(), ::registry::failure::Error> {
             ::registry::actix_rt::System::new("main").block_on(async move {
+                dotenv::dotenv()?;
+                let log_dir = std::env::var("LOG_DIRECTORY")?;
+
+                let file_appender = ::registry::tracing_appender::rolling::daily(&log_dir, #file_name);
+                let (non_blocking, _guard) = ::registry::tracing_appender::non_blocking(file_appender);
+                ::registry::tracing_subscriber::fmt().with_writer(non_blocking).init();
+
                 let _: Result<(), ::registry::failure::Error> = {
                     register_providers().await?;
 

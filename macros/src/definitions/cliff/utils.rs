@@ -54,9 +54,9 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             #request_cases
         }
 
-        impl ::cliff::rpc::RpcMessage for #request_type_name {
-            fn rpc_message_type(&self) -> ::cliff::rpc::RpcMessageType {
-                ::cliff::rpc::RpcMessageType::Request
+        impl ::cliff::codec::RpcMessage for #request_type_name {
+            fn rpc_message_type(&self) -> ::cliff::codec::RpcMessageType {
+                ::cliff::codec::RpcMessageType::Request
             }
         }
 
@@ -71,9 +71,9 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             #response_cases
         }
 
-        impl ::cliff::rpc::RpcMessage for #response_type_name {
-            fn rpc_message_type(&self) -> ::cliff::rpc::RpcMessageType {
-                ::cliff::rpc::RpcMessageType::Response
+        impl ::cliff::codec::RpcMessage for #response_type_name {
+            fn rpc_message_type(&self) -> ::cliff::codec::RpcMessageType {
+                ::cliff::codec::RpcMessageType::Response
             }
         }
 

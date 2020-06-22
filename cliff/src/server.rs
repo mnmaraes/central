@@ -19,7 +19,7 @@ use tokio_util::codec::FramedRead;
 
 use tracing::{error, info, span, Level};
 
-use super::codec::{rpc::RpcMessage, Decoder, Encoder};
+use super::codec::{Decoder, Encoder, RpcMessage};
 
 pub trait ServerRequest: Message + DeserializeOwned + RpcMessage + Send + Unpin {}
 pub trait ServerResponse: Serialize + RpcMessage + Send + Unpin {}
@@ -101,10 +101,10 @@ where
         Session::create(move |ctx| {
             let (r, w) = tokio::io::split(msg.0);
 
-            Session::add_stream(FramedRead::new(r, Decoder::<In>::new()), ctx);
+            Session::add_stream(FramedRead::new(r, Decoder::<In>::default()), ctx);
             Session {
                 router,
-                client: actix::io::FramedWrite::new(w, Encoder::<In::Result>::new(), ctx),
+                client: actix::io::FramedWrite::new(w, Encoder::<In::Result>::default(), ctx),
             }
         });
     }

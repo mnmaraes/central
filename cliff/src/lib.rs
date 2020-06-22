@@ -1,3 +1,4 @@
+pub extern crate codec;
 pub extern crate actix;
 pub extern crate async_trait;
 pub extern crate failure;
@@ -7,11 +8,10 @@ pub extern crate serde;
 pub extern crate tokio;
 
 pub mod client;
-mod codec;
 pub mod server;
 
 pub mod rpc {
-    pub use super::codec::rpc::{RpcMessage, RpcMessageType};
+    pub use super::codec::{RpcMessage, RpcMessageType};
 }
 
 pub use macros::*;

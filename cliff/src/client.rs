@@ -10,7 +10,7 @@ use tokio::net::UnixStream;
 
 use tokio_util::codec::FramedRead;
 
-use super::codec::{rpc::RpcMessage, Decoder, Encoder};
+use super::codec::{Decoder, Encoder, RpcMessage};
 
 #[async_trait::async_trait]
 pub trait IpcClient: Actor {
@@ -46,7 +46,7 @@ impl<I: InterfaceMessage + 'static> actix::io::WriteHandler<Error> for WriteInte
 impl<I: InterfaceMessage + 'static> WriteInterface<I> {
     pub async fn attach(w: WriteHalf<UnixStream>) -> Result<Addr<WriteInterface<I>>, Error> {
         let addr = Self::create(|ctx| Self {
-            framed: actix::io::FramedWrite::new(w, Encoder::<I>::new(), ctx),
+            framed: actix::io::FramedWrite::new(w, Encoder::<I>::default(), ctx),
         });
 
         Ok(addr)
@@ -66,6 +66,6 @@ where
     D: Actor<Context = Context<D>>,
 {
     fn listen(r: ReadHalf<UnixStream>, ctx: &mut Self::Context) {
-        ctx.add_stream(FramedRead::new(r, Decoder::<I>::new()));
+        ctx.add_stream(FramedRead::new(r, Decoder::<I>::default()));
     }
 }

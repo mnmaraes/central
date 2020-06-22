@@ -13,16 +13,17 @@ use rmp_serde as rmps;
 
 use tracing::info;
 
-use super::{RpcMessage, RpcMessageType};
+use crate::{RpcMessage, RpcMessageType};
 
 use parsing::*;
 
+#[derive(Default)]
 pub struct Encoder<Out> {
     outbound_message: PhantomData<Out>,
 }
 
-impl<Out> Encoder<Out> {
-    pub fn new() -> Self {
+impl<Out> Default for Encoder<Out> {
+    fn default() -> Self {
         Self {
             outbound_message: PhantomData,
         }
@@ -63,8 +64,8 @@ pub struct Decoder<In> {
     inbound_message: PhantomData<In>,
 }
 
-impl<In> Decoder<In> {
-    pub fn new() -> Self {
+impl<In> Default for Decoder<In> {
+    fn default() -> Self {
         Self {
             inbound_message: PhantomData,
         }
