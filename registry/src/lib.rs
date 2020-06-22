@@ -3,6 +3,9 @@ pub extern crate actix_rt;
 pub extern crate cliff;
 pub extern crate failure;
 pub extern crate tokio;
+pub extern crate tracing;
+pub extern crate tracing_appender;
+pub extern crate tracing_subscriber;
 pub extern crate uuid;
 
 use actix::prelude::*;
