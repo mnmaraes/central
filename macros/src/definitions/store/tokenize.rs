@@ -49,7 +49,7 @@ impl ToTokens for Ipc {
 
             impl Default for #store_name {
                 fn default() -> Self {
-                    ::dotenv::dotenv().expect("Unable to load environment");
+                    ::dotenv::dotenv().ok();
 
                     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var not found");
 

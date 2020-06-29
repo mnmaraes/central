@@ -67,7 +67,7 @@ pub fn run_provide(tokens: TokenStream) -> TokenStream {
 
         fn main() -> Result<(), ::registry::failure::Error> {
             ::registry::actix_rt::System::new("main").block_on(async move {
-                dotenv::dotenv()?;
+                dotenv::dotenv().ok();
                 let log_dir = std::env::var("LOG_DIRECTORY")?;
 
                 let file_appender = ::registry::tracing_appender::rolling::daily(&log_dir, #file_name);

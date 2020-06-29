@@ -10,7 +10,7 @@ use tracing::{error, info, span, Level};
 
 #[actix_rt::main]
 async fn main() -> Result<(), Error> {
-    dotenv::dotenv()?;
+    dotenv::dotenv().ok();
     let log_dir = std::env::var("LOG_DIRECTORY")?;
 
     let file_appender = tracing_appender::rolling::daily(&log_dir, "registry.log");

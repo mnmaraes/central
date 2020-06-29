@@ -27,7 +27,7 @@ impl ToTokens for Cli {
             #main_command
 
             fn main() {
-                dotenv::dotenv().expect("Couldn't load environment");
+                dotenv::dotenv().ok();
                 let log_dir = std::env::var("LOG_DIRECTORY").expect("Error loading env var LOG_DIRECTORY");
 
                 let file_appender = tracing_appender::rolling::daily(&log_dir, "cli.log");

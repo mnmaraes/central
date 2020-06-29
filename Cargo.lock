@@ -253,7 +253,6 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "async-trait",
- "byteorder",
  "bytes",
  "codec",
  "failure",

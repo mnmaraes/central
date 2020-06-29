@@ -65,8 +65,12 @@ pub fn parsed_encoded_request(value: &json::Value) -> Result<json::Value, Error>
     );
 
     let map = parse_map(value)?;
-    let (method, params) = map.iter().next().ok_or(err)?;
-    let id = params["rqs_id"].clone();
+    let method = map.keys().next().ok_or(err)?;
+
+    let mut value = value.clone();
+
+    let mut params = value[method].take();
+    let id = params["rqs_id"].take();
 
     Ok(json::json!({
         "jsonrpc": "2.0",
@@ -77,13 +81,18 @@ pub fn parsed_encoded_request(value: &json::Value) -> Result<json::Value, Error>
 }
 
 pub fn parse_decoded<In: DeserializeOwned>(value: &json::Value) -> Result<In, Error> {
+    let opt_id = value.get("id").map(|v| v.as_u64()).flatten();
     let opt_method = value.get("method").map(|v| v.as_str()).flatten();
-    let opt_params = value.get("params");
+    let opt_params = value.get("params").map(|v| v.as_object()).flatten();
     let opt_result = value.get("result");
     let opt_error = value.get("error");
 
     let parsed = match (opt_method, opt_params, opt_result, opt_error) {
-        (Some(method), Some(params), None, _) if params.is_object() => {
+        (Some(method), Some(params), None, _) => {
+            let mut params = params.clone();
+            if let Some(id) = opt_id {
+                params.insert("rqs_id".to_string(), json::json!(id));
+            }
             info!("Decoding Request: {:?}: {:?}", method, params);
             json::json!({ method: params })
         }
