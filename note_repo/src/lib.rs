@@ -1,11 +1,8 @@
-#[macro_use]
-extern crate diesel;
-
 mod ipc;
-mod models;
+mod runners;
 
 pub mod model {
-    pub use models::*;
+    pub use models::Note;
 }
 
 pub mod command_client {
@@ -17,5 +14,5 @@ pub mod query_client {
 }
 
 pub mod status_client {
-    pub use crate::ipc::{Check, NoteStoreStatusClient};
+    pub use crate::ipc::{Check, NoteRepoStatusClient};
 }

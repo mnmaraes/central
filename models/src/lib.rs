@@ -27,6 +27,39 @@ pub struct Note {
     pub updated_at: SystemTime,
 }
 
+#[cfg(feature = "notes")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum NoteRef {
+    Deferred,
+    Path(String),
+    Id(String),
+}
+
+#[cfg(feature = "notes")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NoteDescriptor {
+    pub reference: NoteRef,
+    pub title: String,
+}
+
+impl From<Note> for NoteDescriptor {
+    fn from(note: Note) -> Self {
+        let title = note
+            .body
+            .lines()
+            .next()
+            .unwrap_or("")
+            .replace("#", "")
+            .trim()
+            .to_string();
+
+        NoteDescriptor {
+            reference: NoteRef::Id(note.id.to_string()),
+            title,
+        }
+    }
+}
+
 #[cfg(feature = "projects")]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "store", derive(Queryable, Identifiable))]

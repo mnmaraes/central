@@ -2,14 +2,16 @@ use std::env::var;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::process::Command;
 
+use actix::Addr;
+
 use failure::Error;
 
 use dialoguer::Select;
 
 use tempfile::{Builder, NamedTempFile};
 
-use note_store::model::Note;
-use note_store::query_client::{Get, NoteQueryClient};
+use note_store::model::{NoteDescriptor, NoteRef};
+use note_store::query_client::{GetContent, GetIndex, NoteQueryClient};
 
 registry::interface! {
     NoteQuery,
@@ -55,25 +57,37 @@ impl TmpEditor {
     }
 }
 
-pub async fn get_notes() -> Result<Vec<Note>, Error> {
+pub async fn get_notes() -> Result<Vec<NoteDescriptor>, Error> {
     let query_client = require::<NoteQueryClient>().await?;
 
-    Ok(query_client.send(Get).await??)
+    get_notes_from_client(&query_client).await
 }
 
-pub async fn select_note() -> Result<Note, Error> {
-    let notes: Vec<Note> = get_notes().await?;
+async fn get_notes_from_client(
+    client: &Addr<NoteQueryClient>,
+) -> Result<Vec<NoteDescriptor>, Error> {
+    Ok(client.send(GetIndex).await??)
+}
 
-    let first_lines: Vec<_> = notes
-        .iter()
-        .filter_map(|note| note.body.lines().next())
-        .collect();
+pub async fn select_note() -> Result<(NoteRef, String), Error> {
+    let query_client = require::<NoteQueryClient>().await?;
+
+    let notes: Vec<NoteDescriptor> = get_notes_from_client(&query_client).await?;
+
+    let first_lines: Vec<_> = notes.iter().map(|note| note.title.clone()).collect();
 
     let selection = Select::new()
         .default(0)
-        .with_prompt("Select note to delete:")
+        .with_prompt("Select note:")
         .items(&first_lines)
         .interact()?;
 
-    Ok(notes[selection].clone())
+    let NoteDescriptor { reference, .. } = notes[selection].clone();
+    let body = query_client
+        .send(GetContent {
+            reference: reference.clone(),
+        })
+        .await??;
+
+    Ok((reference, body))
 }

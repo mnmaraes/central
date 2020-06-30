@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use models::notes;
-pub use models::Note;
+pub use models::*;
 
 #[derive(Insertable)]
 #[table_name = "notes"]
@@ -43,10 +43,19 @@ pub fn delete_note(conn: &PgConnection, note_id: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn get_all(conn: &PgConnection) -> Result<Vec<Note>, Error> {
+pub fn get_note(conn: &PgConnection, note_id: &str) -> Result<Note, Error> {
+    use self::notes::dsl::*;
+
+    let note_id = Uuid::parse_str(note_id)?;
+    let note = notes.find(note_id).first(conn)?;
+
+    Ok(note)
+}
+
+pub fn get_all_descriptors(conn: &PgConnection) -> Result<Vec<NoteDescriptor>, Error> {
     use self::notes::dsl::*;
 
     let results = notes.load::<Note>(conn)?;
 
-    Ok(results)
+    Ok(results.iter().cloned().map(|n| n.into()).collect())
 }

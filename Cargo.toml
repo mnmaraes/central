@@ -6,7 +6,8 @@ members = [
   "cliff",
   "models",
   "codec",
-  # Stores
+  # Providers
+  "note_repo",
   "note_store",
   "project_store",
   # Interfaces

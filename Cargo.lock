@@ -893,6 +893,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "note_repo"
+version = "0.1.0"
+dependencies = [
+ "actix",
+ "cliff",
+ "dotenv",
+ "failure",
+ "models",
+ "registry",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "note_store"
 version = "0.1.0"
 dependencies = [

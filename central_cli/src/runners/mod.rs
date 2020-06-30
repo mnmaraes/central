@@ -10,7 +10,7 @@ use tokio::time::timeout;
 use rayon::prelude::*;
 
 use note_store::command_client::{Create, Delete, NoteCommandClient, Update};
-use note_store::model::Note;
+use note_store::model::NoteRef;
 use note_store::status_client::{Check, NoteStoreStatusClient};
 
 use utils::*;
@@ -95,7 +95,10 @@ pub fn create_note() {
 
         let note_client = require::<NoteCommandClient>().await.unwrap();
         note_client
-            .send(Create { body: contents })
+            .send(Create {
+                reference: NoteRef::Deferred,
+                body: contents,
+            })
             .await
             .expect("Failed To Notify Note Sore");
     });
@@ -107,18 +110,18 @@ pub fn list_notes() {
             .await
             .expect("Couldn't fetch notes")
             .iter()
-            .filter_map(|note| note.body.lines().next())
+            .map(|note| note.title.clone())
             .for_each(|line| println!("{}", line));
     });
 }
 
 pub fn delete_note() {
     actix_rt::System::new("main").block_on(async move {
-        let Note { id, .. } = select_note().await.expect("Couldn't select note");
+        let (reference, _) = select_note().await.expect("Couldn't select note");
 
         let note_client = require::<NoteCommandClient>().await.unwrap();
         note_client
-            .send(Delete { id: id.to_string() })
+            .send(Delete { reference })
             .await
             .expect("Failed To Notify Note Sore");
     });
@@ -128,7 +131,7 @@ pub fn update_note() {
     let mut editor = TmpEditor::new();
 
     actix_rt::System::new("main").block_on(async move {
-        let Note { id, body, .. } = select_note().await.expect("Couldn't select note");
+        let (reference, body) = select_note().await.expect("Couldn't select note");
 
         editor
             .load_contents(&body)
@@ -144,7 +147,7 @@ pub fn update_note() {
         let note_client = require::<NoteCommandClient>().await.unwrap();
         note_client
             .send(Update {
-                id: id.to_string(),
+                reference,
                 body: contents,
             })
             .await
