@@ -1,5 +1,3 @@
-use std::env::{current_dir, set_current_dir, var};
-
 use cliff::{client, router};
 
 use actix::prelude::*;
@@ -11,22 +9,19 @@ use failure::{format_err, Error};
 use crate::runners::*;
 use models::{NoteDescriptor, NoteRef};
 
-pub struct NoteRepo;
+use crate::actors::{set_home, start_watch, NoteIndex, NoteParser};
+
+pub struct NoteRepo {
+    index: Addr<NoteIndex>,
+}
 
 impl Actor for NoteRepo {
     type Context = Context<Self>;
 }
 
-impl Default for NoteRepo {
-    fn default() -> Self {
-        dotenv::dotenv().ok();
-
-        let current = current_dir();
-        let home = var("NOTE_HOME").map(|s| s.into()).or(current).unwrap();
-
-        set_current_dir(home).ok();
-
-        NoteRepo
+impl NoteRepo {
+    pub fn new(index: Addr<NoteIndex>) -> Self {
+        Self { index }
     }
 }
 
@@ -73,6 +68,16 @@ router! {
                 => Index [Vec<NoteDescriptor>] { index: index.unwrap() }
             ],
         ],
+        NoteIndex [
+            Search -> {
+                // TODO
+                let found = search_notes();
+            } => Found [Vec<NoteRef>] { found },
+            ListTasks -> {
+                // TODO
+                let tasks = get_tasks();
+            } => Tasks [Vec<String>] { tasks }
+        ],
         NoteRepoStatus [
             Check => Alive
         ]
@@ -105,6 +110,23 @@ client! {
             Error { description } => [
                 Result<Vec<NoteDescriptor>, Error>: Err(format_err!("{}", description)),
                 Result<String, Error>: Err(format_err!("{}", description))
+            ]
+        ]
+    }
+}
+
+client! {
+    NoteIndex {
+        actions => [
+            Search wait Vec<NoteRef>,
+            ListTasks wait Vec<String>,
+        ],
+        response_mapping => [
+            Found { found } => [
+                Vec<NoteRef>: found
+            ],
+            Tasks { tasks } => [
+                Vec<String>: tasks
             ]
         ]
     }
