@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::env::{current_dir, set_current_dir, var};
 use std::fs::read_to_string;
+use std::hash::Hash;
 use std::io::BufRead;
 use std::path::PathBuf;
 use std::process::Command;
@@ -20,7 +21,107 @@ use tracing::{error, info};
 #[rtype(result = "()")]
 pub struct Parse(PathBuf);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq)]
+enum IndexedContent {
+    Paragraph {
+        start: usize,
+        content: String,
+    },
+    Task {
+        start: usize,
+        is_done: bool,
+        name: String,
+    },
+    Link {
+        start: u32,
+        content: String,
+        destination: String,
+    },
+}
+
+#[derive(Debug)]
+struct ContextTree {
+    children: HashMap<ContextItem, ContextTree>,
+    content: HashSet<IndexedContent>,
+}
+
+impl ContextTree {
+    pub fn new() -> ContextTree {
+        ContextTree {
+            children: HashMap::new(),
+            content: HashSet::new(),
+        }
+    }
+
+    pub fn get(&self, path: &[ContextItem]) -> Option<&ContextTree> {
+        let mut entry = self;
+        for segment in path {
+            entry = match entry.children.get(segment) {
+                Some(entry) => entry,
+                None => return None,
+            }
+        }
+
+        Some(entry)
+    }
+
+    pub fn get_mut(&mut self, path: &[ContextItem]) -> Option<&mut ContextTree> {
+        let mut entry = self;
+        for segment in path {
+            entry = match entry.children.get_mut(segment) {
+                Some(entry) => entry,
+                None => return None,
+            }
+        }
+        Some(entry)
+    }
+
+    pub fn index(&mut self, path: &[ContextItem], content: IndexedContent) {
+        self.extend(path);
+        self.get_mut(path).unwrap().content.insert(content);
+    }
+
+    pub fn deindex(&mut self, path: &[ContextItem]) {
+        let mut path = path.to_vec();
+        let key = path.pop().unwrap();
+        if let Some(tree) = self.get_mut(&path) {
+            tree.children.remove(&key);
+        }
+    }
+
+    fn extend(&mut self, path: &[ContextItem]) {
+        if path.is_empty() {
+            return;
+        }
+        let mut path = path.to_vec();
+
+        let child = path.remove(0);
+        let sub_tree = self.children.entry(child).or_insert_with(ContextTree::new);
+        sub_tree.extend(&path);
+    }
+}
+
+impl std::fmt::Display for ContextTree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_self("", f)?;
+
+        Ok(())
+    }
+}
+
+impl ContextTree {
+    fn fmt_self(&self, prepend: &str, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let prepend = format!("{}>", prepend);
+        for (k, v) in self.children.iter() {
+            writeln!(f, "{} {}", prepend, k)?;
+            v.fmt_self(&prepend, f)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 enum ContextItem {
     Simple {
         name: String,
@@ -30,6 +131,19 @@ enum ContextItem {
         start: u32,
         title: String,
     },
+}
+
+impl std::fmt::Display for ContextItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use ContextItem::*;
+
+        match self {
+            Simple { name } => write!(f, "{}", name)?,
+            Heading { title, .. } => write!(f, "{}", title)?,
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -168,7 +282,7 @@ impl NoteParser {
         match top {
             Some(ContextItem::Heading { level, .. }) => *level,
             Some(ContextItem::Simple { .. }) => 0,
-            None => 0,
+            _ => 0,
         }
     }
 
@@ -186,11 +300,13 @@ impl NoteParser {
             }
         };
 
-        self.index.do_send(IndexContent::Link {
-            start,
-            destination,
-            content,
+        self.index.do_send(IndexContent {
             context: self.context.clone(),
+            content: IndexedContent::Link {
+                start,
+                content,
+                destination,
+            },
         })
     }
 
@@ -204,10 +320,9 @@ impl NoteParser {
             }
         };
 
-        self.index.do_send(IndexContent::Paragraph {
-            start,
-            content,
+        self.index.do_send(IndexContent {
             context: self.context.clone(),
+            content: IndexedContent::Paragraph { start, content },
         })
     }
 
@@ -226,11 +341,13 @@ impl NoteParser {
         };
 
         if let Some(is_done) = is_done {
-            self.index.do_send(IndexContent::Task {
-                is_done,
-                start,
-                name,
+            self.index.do_send(IndexContent {
                 context: self.context.clone(),
+                content: IndexedContent::Task {
+                    is_done,
+                    start,
+                    name,
+                },
             })
         }
     }
@@ -255,11 +372,7 @@ impl NoteParser {
             title,
         });
 
-        self.index.do_send(IndexContent::Heading {
-            start,
-            level,
-            context: self.context.clone(),
-        })
+        // NOTE: Index Headers, maybe??
     }
 
     fn set_current_item_task(&mut self, is_done: bool) {
@@ -289,11 +402,7 @@ impl NoteParser {
     }
 
     fn set_context(&mut self, path: &str) {
-        self.context = path
-            .replace(".md", "")
-            .split('/')
-            .map(|part| ContextItem::Simple { name: part.into() })
-            .collect();
+        self.context = parse_path(path);
     }
 }
 
@@ -340,35 +449,15 @@ struct Deindex(PathBuf);
 
 #[derive(Message, Debug)]
 #[rtype(result = "()")]
-enum IndexContent {
-    Heading {
-        context: Vec<ContextItem>,
-        level: u32,
-        start: u32,
-    },
-    Task {
-        context: Vec<ContextItem>,
-        is_done: bool,
-        start: u32,
-        name: String,
-    },
-    Paragraph {
-        context: Vec<ContextItem>,
-        start: u32,
-        content: String,
-    },
-    Link {
-        context: Vec<ContextItem>,
-        start: u32,
-        content: String,
-        destination: String,
-    },
+struct IndexContent {
+    pub context: Vec<ContextItem>,
+    pub content: IndexedContent,
 }
 
 #[derive(Debug)]
 pub struct NoteIndex {
-    references: HashSet<PathBuf>,
     parser: Addr<NoteParser>,
+    context: ContextTree,
 }
 
 impl Actor for NoteIndex {
@@ -378,8 +467,8 @@ impl Actor for NoteIndex {
 impl NoteIndex {
     pub fn new(parser: Addr<NoteParser>) -> Self {
         NoteIndex {
-            references: HashSet::new(),
             parser,
+            context: ContextTree::new(),
         }
     }
 
@@ -400,8 +489,7 @@ impl Handler<Index> for NoteIndex {
     fn handle(&mut self, msg: Index, ctx: &mut Self::Context) -> Self::Result {
         info!("Indexing {:?}", msg.0);
         self.parse(&msg.0);
-        // TODO: Any note processing goes here
-        self.references.insert(msg.0);
+        // TODO: Any note processing goes here (Just parsing for now)
     }
 }
 
@@ -410,12 +498,10 @@ impl Handler<Reindex> for NoteIndex {
 
     fn handle(&mut self, msg: Reindex, _ctx: &mut Self::Context) -> Self::Result {
         info!("Reindexing {:?}", msg.0);
+        self.context
+            .deindex(&parse_path(msg.0.to_str().unwrap_or_default()));
         self.parse(&msg.0);
-        //TODO: Note Reprocessing go here
-        if !self.references.contains(&msg.0) {
-            info!("Reindexed note {:?} wasn't present. Inserting now", msg.0);
-            self.references.insert(msg.0);
-        }
+        //TODO: Note Reprocessing go here (may need to remove indexed data under the context)
     }
 }
 
@@ -424,8 +510,9 @@ impl Handler<Deindex> for NoteIndex {
 
     fn handle(&mut self, msg: Deindex, _ctx: &mut Self::Context) -> Self::Result {
         info!("Deindexing {:?}", msg.0);
+        self.context
+            .deindex(&parse_path(msg.0.to_str().unwrap_or_default()));
         //TODO: Any action needed after a note removal goes here
-        self.references.remove(&msg.0);
     }
 }
 
@@ -433,8 +520,13 @@ impl Handler<IndexContent> for NoteIndex {
     type Result = ();
 
     fn handle(&mut self, msg: IndexContent, _ctx: &mut Self::Context) -> Self::Result {
-        info!("Indexing Content {:?}", msg);
-        //TODO
+        let IndexContent {
+            context: path,
+            content,
+        } = msg;
+
+        self.context.index(&path, content);
+        //TODO: Index content for search(?)
     }
 }
 
@@ -506,6 +598,13 @@ fn process_event(event: DebouncedEvent, index: &Addr<NoteIndex>) {
         }
         _ => { /* Do Nothing */ }
     }
+}
+
+fn parse_path(path: &str) -> Vec<ContextItem> {
+    path.replace(".md", "")
+        .split('/')
+        .map(|part| ContextItem::Simple { name: part.into() })
+        .collect()
 }
 
 fn is_md(path: &PathBuf) -> bool {
