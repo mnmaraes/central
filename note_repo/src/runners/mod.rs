@@ -11,6 +11,14 @@ use models::{NoteDescriptor, NoteRef};
 
 use failure::Error;
 
+pub fn search_notes() -> Vec<NoteRef> {
+    unimplemented!()
+}
+
+pub fn get_tasks() -> Vec<String> {
+    unimplemented!()
+}
+
 pub fn get_note(path: String) -> Result<String, Error> {
     Ok(read_to_string(path)?)
 }

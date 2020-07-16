@@ -16,7 +16,12 @@ failure = "0.1.6"
 uuid = { version = "0.8", features = ["v4", "serde"] }
 
 dotenv = "0.15"
+notify = "4.0"
+
+im = "15"
+pulldown-cmark = "0.7"
 
 tracing = "0.1"
+tracing-futures = "0.2"
 tracing-appender = "0.1"
 tracing-subscriber = "0.2"

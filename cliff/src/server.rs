@@ -25,7 +25,9 @@ pub trait ServerRequest: Message + DeserializeOwned + RpcMessage + Send + Unpin 
 pub trait ServerResponse: Serialize + RpcMessage + Send + Unpin {}
 
 impl<M: Message + DeserializeOwned + RpcMessage + Send + Unpin> ServerRequest for M {}
-impl<M: Serialize + RpcMessage + Send + Unpin> ServerResponse for M {}
+//impl<M: Serialize + RpcMessage + Send + Unpin> ServerResponse for M {}
+
+impl<O: Serialize + Send + Unpin> ServerResponse for Result<O, ()> {}
 
 pub trait Router<In: ServerRequest>: Actor + Handler<In> {}
 

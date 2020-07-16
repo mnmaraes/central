@@ -1,6 +1,6 @@
 mod rpc;
 
-pub use rpc::{Encoder, Decoder};
+pub use rpc::{Decoder, Encoder};
 
 pub enum RpcMessageType {
     Request,
@@ -11,6 +11,15 @@ pub enum RpcMessageType {
 
 pub trait RpcMessage {
     fn rpc_message_type(&self) -> RpcMessageType;
+}
+
+impl<O, E> RpcMessage for Result<O, E> {
+    fn rpc_message_type(&self) -> RpcMessageType {
+        match self {
+            Ok(_) => RpcMessageType::Response,
+            Err(_) => RpcMessageType::Error,
+        }
+    }
 }
 
 #[cfg(test)]

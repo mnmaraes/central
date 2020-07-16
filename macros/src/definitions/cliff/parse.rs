@@ -192,6 +192,14 @@ impl Parse for RequestHandler {
 
 impl Parse for ServerMessage {
     fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        let is_async = if lookahead.peek(Token!(async)) {
+            let _: Token![async] = input.parse()?;
+            true
+        } else {
+            false
+        };
+
         let interface_name = input.parse()?;
 
         let content;
@@ -204,6 +212,7 @@ impl Parse for ServerMessage {
             .collect();
 
         Ok(ServerMessage {
+            is_async,
             interface_name,
             handlers,
         })
@@ -228,6 +237,7 @@ impl Parse for Router {
                 .collect();
 
             ServerInterface::Single(ServerMessage {
+                is_async: false,
                 interface_name: router_type.clone(),
                 handlers,
             })

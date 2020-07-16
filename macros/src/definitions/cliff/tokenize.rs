@@ -161,6 +161,34 @@ impl ToTokens for RequestHandler {
     }
 }
 
+impl ToTokens for AsyncRequestHandler {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let AsyncRequestHandler {
+            request_case,
+            block,
+            response,
+        } = self;
+
+        let stream = if let Some(block) = block {
+            quote! {
+                #request_case => {
+                    let res = #block;
+                    let res = ::cliff::actix::fut::wrap_future::<_, Self>(res);
+                    res.map(move |res, actor, _| { Ok(#response) })
+                }
+            }
+        } else {
+            quote! {
+                #request_case => {
+                    #response
+                }
+            }
+        };
+
+        tokens.append_all(stream);
+    }
+}
+
 impl ToTokens for Client {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let Client {

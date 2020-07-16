@@ -4,15 +4,20 @@ use heck::SnakeCase;
 
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{bracketed, Ident, Result, Token};
+use syn::{braced, bracketed, token, Block, Expr, Ident, Result, Stmt, Token};
 
 mod provide_keywords {
     syn::custom_keyword!(from);
+    syn::custom_keyword!(setup);
+    syn::custom_keyword!(provider);
 }
 
 #[derive(Clone, Debug)]
 pub struct Provide {
     pub(crate) provider: Ident,
+
+    pub(crate) setup: Option<Block>,
+    pub(crate) create_provider: Option<Expr>,
 
     pub(crate) capabilities: Vec<Capability>,
 }
@@ -29,9 +34,25 @@ pub struct Interface {
     pub(crate) capabilities: Vec<Ident>,
 }
 
+#[derive(Clone, Debug)]
+pub enum OptionField {
+    Setup(Block),
+    CreateProvider(Box<Expr>),
+}
+
 impl Parse for Provide {
     fn parse(input: ParseStream) -> Result<Self> {
         let provider: Ident = input.parse()?;
+
+        let lookahead = input.lookahead1();
+        let (setup, create_provider) = if lookahead.peek(token::Brace) {
+            Provide::parse_options(input)?
+        } else if lookahead.peek(Token![=>]) {
+            (None, None)
+        } else {
+            return Err(lookahead.error());
+        };
+
         let _: Token![=>] = input.parse()?;
 
         let content;
@@ -47,8 +68,57 @@ impl Parse for Provide {
         Ok(Provide {
             provider,
 
+            setup,
+            create_provider,
+
             capabilities,
         })
+    }
+}
+
+impl Provide {
+    fn parse_options(input: ParseStream) -> Result<(Option<Block>, Option<Expr>)> {
+        let content;
+        let _: token::Brace = braced!(content in input);
+        let opts: Vec<OptionField> =
+            Punctuated::<OptionField, Token![,]>::parse_terminated(&content)?
+                .iter()
+                .cloned()
+                .collect();
+
+        let setup = opts
+            .iter()
+            .find_map(|opt| match opt {
+                OptionField::Setup(stmts) => Some(stmts),
+                _ => None,
+            })
+            .cloned();
+
+        let create_provider = opts.iter().find_map(|opt| match opt {
+            OptionField::CreateProvider(expr) => Some(*(expr.clone())),
+            _ => None,
+        });
+
+        Ok((setup, create_provider))
+    }
+}
+
+impl Parse for OptionField {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(provide_keywords::setup) {
+            let _: provide_keywords::setup = input.parse()?;
+            let _: Token![=>] = input.parse()?;
+
+            Ok(OptionField::Setup(input.parse()?))
+        } else if lookahead.peek(provide_keywords::provider) {
+            let _: provide_keywords::provider = input.parse()?;
+            let _: Token![=>] = input.parse()?;
+
+            Ok(OptionField::CreateProvider(input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
     }
 }
 
@@ -68,12 +138,28 @@ impl ToTokens for Provide {
         let Provide {
             provider,
             capabilities,
+            setup,
+            create_provider,
         } = self;
 
         let var_name = Ident::new(
             provider.to_string().as_str().to_snake_case().as_str(),
             provider.span(),
         );
+
+        let setup = match setup {
+            Some(block) => {
+                let stmts: Vec<_> = block.stmts.to_vec();
+                quote! { #(#stmts;)* }
+            }
+            None => quote! {},
+        };
+
+        let create_provider = match create_provider {
+            Some(expr) => quote! { #expr },
+            None => quote! { #provider::start_default() },
+        };
+
         let deregister_capabilities: Vec<_> = capabilities
             .iter()
             .map(|capability| {
@@ -101,7 +187,9 @@ impl ToTokens for Provide {
             async fn register_providers() -> ::core::result::Result<::actix::Addr<#provider>, ::failure::Error> {
                 use ::registry::actix::*;
 
-                let #var_name = #provider::start_default();
+                #setup
+
+                let #var_name = #create_provider;
                 let registry_client = ::registry::ProviderClient::connect_default().await?;
 
                 #(#capabilities)*

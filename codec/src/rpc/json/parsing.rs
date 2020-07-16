@@ -30,13 +30,13 @@ pub fn parsed_encoded_response(value: &json::Value) -> Result<json::Value, Error
         value
     );
 
-    let map = parse_map(value)?;
+    let map = flatten_result(parse_map(value)?)?;
     let (_method, params) = map.iter().next().ok_or(err)?;
     let id = params["rqs_id"].clone();
 
     Ok(json::json!({
         "jsonrpc": "2.0",
-        "result": value,
+        "result": json::Value::Object(map),
         "error": json::Value::Null,
         "id": id
     }))
@@ -125,4 +125,18 @@ fn parse_map(value: &json::Value) -> Result<json::Map<String, json::Value>, Erro
     let err = format_err!("Encoding Error: Expected encoded Map, found: {:?}", value);
 
     value.as_object().cloned().ok_or(err)
+}
+
+fn flatten_result(
+    mut value: json::Map<String, json::Value>,
+) -> Result<json::Map<String, json::Value>, Error> {
+    if value.keys().len() > 1 || !value.contains_key("Ok") {
+        let keys: Vec<_> = value.keys().collect();
+        info!("Returning: {}, {:?}", value.keys().len(), keys);
+        Ok(value)
+    } else {
+        let next = value["Ok"].take();
+        info!("Returning: {}", next);
+        Ok(flatten_result(parse_map(&next)?)?)
+    }
 }

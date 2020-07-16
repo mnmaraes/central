@@ -110,7 +110,25 @@ pub struct RequestHandler {
 }
 
 #[derive(Clone, Debug)]
+pub struct AsyncRequestHandler {
+    pub(crate) request_case: RequestCase,
+    pub(crate) block: Option<Block>,
+    pub(crate) response: Response,
+}
+
+impl From<RequestHandler> for AsyncRequestHandler {
+    fn from(handler: RequestHandler) -> Self {
+        AsyncRequestHandler {
+            request_case: handler.request_case,
+            block: handler.block,
+            response: handler.response,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ServerMessage {
+    pub(crate) is_async: bool,
     pub(crate) interface_name: Ident,
     pub(crate) handlers: Vec<RequestHandler>,
 }
