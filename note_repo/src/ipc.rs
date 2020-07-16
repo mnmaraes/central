@@ -9,7 +9,7 @@ use failure::{format_err, Error};
 use crate::runners::*;
 use models::{NoteDescriptor, NoteRef};
 
-use crate::actors::{set_home, start_watch, NoteIndex, NoteParser};
+use crate::actors::{set_home, start_watch, ListTasks as IndexedTasks, NoteIndex, NoteParser};
 
 pub struct NoteRepo {
     index: Addr<NoteIndex>,
@@ -68,15 +68,15 @@ router! {
                 => Index [Vec<NoteDescriptor>] { index: index.unwrap() }
             ],
         ],
-        NoteIndex [
-            Search -> {
-                // TODO
-                let found = search_notes();
-            } => Found [Vec<NoteRef>] { found },
+        async NoteIndex [
+            //Search -> {
+                //// TODO
+                //let found = search_notes();
+            //} => Found [Vec<NoteRef>] { found },
             ListTasks -> {
                 // TODO
-                let tasks = get_tasks();
-            } => Tasks [Vec<String>] { tasks }
+                self.index.send(IndexedTasks)
+            } => Tasks [Vec<String>] { tasks: res.unwrap() }
         ],
         NoteRepoStatus [
             Check => Alive
@@ -118,13 +118,13 @@ client! {
 client! {
     NoteIndex {
         actions => [
-            Search wait Vec<NoteRef>,
+            //Search wait Vec<NoteRef>,
             ListTasks wait Vec<String>,
         ],
         response_mapping => [
-            Found { found } => [
-                Vec<NoteRef>: found
-            ],
+            //Found { found } => [
+                //Vec<NoteRef>: found
+            //],
             Tasks { tasks } => [
                 Vec<String>: tasks
             ]

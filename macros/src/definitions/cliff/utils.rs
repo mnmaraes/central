@@ -7,7 +7,8 @@ use quote::quote;
 use syn::Ident;
 
 use super::nodes::{
-    CaseDeclaration, RequestHandler, Response, Router, ServerInterface, ServerMessage,
+    AsyncRequestHandler, CaseDeclaration, RequestHandler, Response, Router, ServerInterface,
+    ServerMessage,
 };
 
 pub fn build_router(router: Router) -> proc_macro2::TokenStream {
@@ -45,10 +46,59 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
 
     let (request_cases, response_cases) = build_declarations(&message.handlers);
 
-    let handlers = message.handlers;
+    let message_impl = if message.is_async {
+        quote! {
+            impl ::cliff::actix::Message for #request_type_name {
+                type Result = Result<#response_type_name, ()>;
+            }
+        }
+    } else {
+        quote! {
+            impl ::cliff::actix::Message for #request_type_name {
+                type Result = #response_type_name;
+            }
+        }
+    };
+
+    let message_handler = if message.is_async {
+        let handlers: Vec<AsyncRequestHandler> =
+            message.handlers.iter().cloned().map(|h| h.into()).collect();
+        quote! {
+            impl Handler<#request_type_name> for #router_type {
+                type Result = ::cliff::actix::ResponseActFuture<Self, Result<#response_type_name, ()>>;
+
+                fn handle(&mut self, msg: #request_type_name, _ctx: &mut Self::Context) -> Self::Result {
+                    use #request_type_name::*;
+                    use #response_type_name::*;
+
+                    let res = match msg.clone() {
+                        #(#handlers)*
+                    };
+
+                    Box::pin(res)
+                }
+            }
+        }
+    } else {
+        let handlers = message.handlers;
+        quote! {
+            impl Handler<#request_type_name> for #router_type {
+                type Result = #response_type_name;
+
+                fn handle(&mut self, msg: #request_type_name, _ctx: &mut Self::Context) -> Self::Result {
+                    use #request_type_name::*;
+                    use #response_type_name::*;
+
+                    match msg {
+                        #(#handlers)*
+                    }
+                }
+            }
+        }
+    };
 
     quote! {
-        #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, Debug)]
+        #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, Clone, Debug)]
         #[serde(crate = "::cliff::serde")]
         pub enum #request_type_name {
             #request_cases
@@ -60,9 +110,7 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             }
         }
 
-        impl ::cliff::actix::Message for #request_type_name {
-            type Result = #response_type_name;
-        }
+        #message_impl
 
         #[derive(::cliff::serde::Serialize, ::cliff::serde::Deserialize, ::cliff::actix::Message, Debug)]
         #[rtype(result = "()")]
@@ -89,18 +137,9 @@ fn build_server_message(router_type: Ident, message: ServerMessage) -> proc_macr
             }
         }
 
-        impl Handler<#request_type_name> for #router_type {
-            type Result = #response_type_name;
+        impl ::cliff::server::ServerResponse for #response_type_name {}
 
-            fn handle(&mut self, msg: #request_type_name, _ctx: &mut Self::Context) -> Self::Result {
-                use #request_type_name::*;
-                use #response_type_name::*;
-
-                match msg {
-                    #(#handlers)*
-                }
-            }
-        }
+        #message_handler
 
         impl ::cliff::server::Router<#request_type_name> for #router_type {}
     }

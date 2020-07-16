@@ -3,7 +3,9 @@ mod ipc;
 mod runners;
 
 use actors::{set_home, start_watch, NoteIndex, NoteParser};
-use ipc::{NoteCommandRequest, NoteQueryRequest, NoteRepo, NoteRepoStatusRequest};
+use ipc::{
+    NoteCommandRequest, NoteIndexRequest, NoteQueryRequest, NoteRepo, NoteRepoStatusRequest,
+};
 
 registry::run_provide! {
     NoteRepo {
@@ -16,8 +18,8 @@ registry::run_provide! {
                 NoteIndex::new(parser)
             });
             start_watch(&index);
+
         },
         provider => NoteRepo::new(index).start()
-    } => [NoteCommand, NoteQuery, NoteRepoStatus]
+    } => [NoteCommand, NoteQuery, NoteRepoStatus, NoteIndex]
 }
-

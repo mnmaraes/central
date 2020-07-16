@@ -63,7 +63,7 @@ impl ParseState {
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum IndexedContent {
     Paragraph {
         start: usize,
@@ -129,6 +129,24 @@ impl ContextTree {
         if let Some(tree) = self.get_mut(&path) {
             tree.children.remove(&key);
         }
+    }
+
+    pub fn indexed_content(&self, path: &[ContextItem]) -> Vec<IndexedContent> {
+        if let Some(tree) = self.get(path) {
+            tree.all_content()
+        } else {
+            vec![]
+        }
+    }
+
+    fn all_content(&self) -> Vec<IndexedContent> {
+        let mut content: Vec<_> = self.content.iter().cloned().collect();
+
+        for child in self.children.values() {
+            content.extend(child.all_content());
+        }
+
+        content
     }
 
     fn extend(&mut self, path: &[ContextItem]) {

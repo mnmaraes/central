@@ -8,6 +8,10 @@ use super::parser::{NoteParser, Parse};
 use super::types::{ContextItem, ContextTree, IndexedContent};
 use super::utils::parse_path;
 
+#[derive(Message, Debug)]
+#[rtype(result = "Vec<String>")]
+pub struct ListTasks;
+
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Index(pub PathBuf);
@@ -53,6 +57,32 @@ impl NoteIndex {
                 error!("Error parsing {:?}: {:?}", path, e);
             };
         }));
+    }
+}
+
+impl Handler<ListTasks> for NoteIndex {
+    type Result = MessageResult<ListTasks>;
+
+    fn handle(&mut self, msg: ListTasks, _ctx: &mut Self::Context) -> Self::Result {
+        info!("Empty {:?}", msg);
+        MessageResult(
+            self.context
+                .indexed_content(&[])
+                .iter()
+                .filter_map(|c| {
+                    if let IndexedContent::Task { name, is_done, .. } = c {
+                        if *is_done {
+                            None
+                        } else {
+                            Some(name.clone())
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        )
+        // TODO: Any note processing goes here (Just parsing for now)
     }
 }
 
